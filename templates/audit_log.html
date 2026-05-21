@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+{% block title %}سجل العمليات{% endblock %}
+{% block page_title %}<i class="bi bi-shield-check me-2"></i>سجل العمليات (Audit Log){% endblock %}
+{% block content %}
+<div class="card">
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead class="table-dark">
+                <tr>
+                    <th>العملية</th>
+                    <th>رقم المريض</th>
+                    <th>التفاصيل</th>
+                    <th>IP</th>
+                    <th>الوقت</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in logs %}
+                <tr>
+                    <td>
+                        {% if 'LOGIN' in log.action %}<span class="badge bg-success">{{ log.action }}</span>
+                        {% elif 'VIEW' in log.action %}<span class="badge bg-info">{{ log.action }}</span>
+                        {% elif 'ADD' in log.action %}<span class="badge bg-primary">{{ log.action }}</span>
+                        {% else %}<span class="badge bg-secondary">{{ log.action }}</span>{% endif %}
+                    </td>
+                    <td>
+                        {% if log.patient_id %}
+                        <a href="{{ url_for('patient_profile', patient_id=log.patient_id) }}"
+                           class="patient-id-badge text-decoration-none">{{ log.patient_id }}</a>
+                        {% else %}-{% endif %}
+                    </td>
+                    <td>{{ log.details or '-' }}</td>
+                    <td><code>{{ log.ip_address }}</code></td>
+                    <td>{{ log.timestamp.strftime('%Y-%m-%d %H:%M') if log.timestamp else '-' }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="5" class="text-center text-muted py-4">لا توجد سجلات</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,330 @@
+{% extends 'base.html' %}
+{% block title %}ملف {{ patient.full_name }}{% endblock %}
+{% block page_title %}<i class="bi bi-person-vcard me-2"></i>ملف المريض{% endblock %}
+{% block content %}
+
+<!-- بيانات المريض الأساسية -->
+<div class="card mb-4">
+    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center py-3">
+        <span><i class="bi bi-person-circle me-2"></i>البيانات الأساسية</span>
+        <span class="patient-id-badge bg-white text-primary">{{ patient.patient_id }}</span>
+    </div>
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-3">
+                <label class="text-muted" style="font-size:12px">الاسم الكامل</label>
+                <div class="fw-bold fs-5">{{ patient.full_name }}</div>
+            </div>
+            <div class="col-md-2">
+                <label class="text-muted" style="font-size:12px">تاريخ الميلاد</label>
+                <div class="fw-bold">{{ patient.birth_date.strftime('%Y-%m-%d') if patient.birth_date else '-' }}</div>
+            </div>
+            <div class="col-md-2">
+                <label class="text-muted" style="font-size:12px">الجنس</label>
+                <div>
+                    {% if patient.gender == 'male' %}
+                        <span class="badge bg-info fs-6">ذكر</span>
+                    {% else %}
+                        <span class="badge bg-danger fs-6">أنثى</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="col-md-2">
+                <label class="text-muted" style="font-size:12px">فصيلة الدم</label>
+                <div><span class="badge-blood fs-6">{{ patient.blood_type }}</span></div>
+            </div>
+            <div class="col-md-3">
+                <label class="text-muted" style="font-size:12px">الهاتف</label>
+                <div class="fw-bold">{{ patient.phone or '-' }}</div>
+            </div>
+            <div class="col-md-4">
+                <label class="text-muted" style="font-size:12px">العنوان</label>
+                <div>{{ patient.address or '-' }}</div>
+            </div>
+            <div class="col-md-4">
+                <label class="text-muted" style="font-size:12px">جهة الاتصال للطوارئ</label>
+                <div>{{ patient.emergency_contact or '-' }} — {{ patient.emergency_phone or '' }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- الأمراض المزمنة -->
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header bg-danger text-white py-3">
+                <i class="bi bi-heart-pulse me-2"></i>الأمراض المزمنة
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-sm mb-0">
+                    <thead class="table-light"><tr><th>المرض</th><th>تاريخ التشخيص</th></tr></thead>
+                    <tbody>
+                        {% for d in diseases %}
+                        <tr>
+                            <td>{{ d.disease }}</td>
+                            <td>{{ d.diagnosed.strftime('%Y-%m-%d') if d.diagnosed else '-' }}</td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="2" class="text-center text-muted py-3">لا يوجد</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- الحساسية -->
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header bg-warning text-dark py-3">
+                <i class="bi bi-exclamation-triangle me-2"></i>الحساسية
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-sm mb-0">
+                    <thead class="table-light"><tr><th>المادة</th><th>ردة الفعل</th></tr></thead>
+                    <tbody>
+                        {% for a in allergies %}
+                        <tr>
+                            <td><span class="badge bg-warning text-dark">{{ a.allergen }}</span></td>
+                            <td>{{ a.reaction or '-' }}</td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="2" class="text-center text-muted py-3">لا يوجد</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- العمليات الجراحية -->
+<div class="card mt-4">
+    <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center py-3">
+        <span><i class="bi bi-scissors me-2"></i>العمليات الجراحية</span>
+        <button class="btn btn-sm btn-light" data-bs-toggle="modal" data-bs-target="#addSurgery">
+            <i class="bi bi-plus-circle me-1"></i>إضافة عملية
+        </button>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr><th>العملية</th><th>المستشفى</th><th>الطبيب</th><th>التاريخ</th><th>النتيجة</th></tr>
+            </thead>
+            <tbody>
+                {% for s in surgeries %}
+                <tr>
+                    <td><strong>{{ s.surgery_name }}</strong></td>
+                    <td>{{ s.hospital_name }}</td>
+                    <td>{{ s.doctor_name or '-' }}</td>
+                    <td>{{ s.surgery_date.strftime('%Y-%m-%d') if s.surgery_date else '-' }}</td>
+                    <td>
+                        {% if s.result == 'successful' %}<span class="badge bg-success">ناجحة</span>
+                        {% elif s.result == 'complications' %}<span class="badge bg-warning">مضاعفات</span>
+                        {% else %}<span class="badge bg-danger">فاشلة</span>{% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="5" class="text-center text-muted py-3">لا توجد عمليات</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- الزيارات الطبية -->
+<div class="card mt-4">
+    <div class="card-header bg-success text-white d-flex justify-content-between align-items-center py-3">
+        <span><i class="bi bi-calendar2-plus me-2"></i>الزيارات الطبية</span>
+        <button class="btn btn-sm btn-light" data-bs-toggle="modal" data-bs-target="#addVisit">
+            <i class="bi bi-plus-circle me-1"></i>إضافة زيارة
+        </button>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr><th>السبب</th><th>التشخيص</th><th>المستشفى</th><th>الطبيب</th><th>التاريخ</th></tr>
+            </thead>
+            <tbody>
+                {% for v in visits %}
+                <tr>
+                    <td><strong>{{ v.reason }}</strong></td>
+                    <td>{{ v.diagnosis or '-' }}</td>
+                    <td>{{ v.hospital_name }}</td>
+                    <td>{{ v.doctor_name or '-' }}</td>
+                    <td>{{ v.visit_date.strftime('%Y-%m-%d') if v.visit_date else '-' }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="5" class="text-center text-muted py-3">لا توجد زيارات</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- الأدوية -->
+<div class="card mt-4 mb-4">
+    <div class="card-header bg-info text-white d-flex justify-content-between align-items-center py-3">
+        <span><i class="bi bi-capsule me-2"></i>الأدوية</span>
+        <button class="btn btn-sm btn-light" data-bs-toggle="modal" data-bs-target="#addMedication">
+            <i class="bi bi-plus-circle me-1"></i>إضافة دواء
+        </button>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr><th>الدواء</th><th>الجرعة</th><th>التكرار</th><th>الطبيب</th><th>المستشفى</th></tr>
+            </thead>
+            <tbody>
+                {% for m in medications %}
+                <tr>
+                    <td><strong>{{ m.drug_name }}</strong></td>
+                    <td>{{ m.dosage or '-' }}</td>
+                    <td>{{ m.frequency or '-' }}</td>
+                    <td>{{ m.prescribed_by or '-' }}</td>
+                    <td>{{ m.hospital_name }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="5" class="text-center text-muted py-3">لا توجد أدوية</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ── Modals ── -->
+
+<!-- إضافة زيارة -->
+<div class="modal fade" id="addVisit" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title"><i class="bi bi-calendar2-plus me-2"></i>إضافة زيارة طبية</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('add_visit', patient_id=patient.patient_id) }}">
+                <div class="modal-body row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">تاريخ الزيارة *</label>
+                        <input type="datetime-local" name="visit_date" class="form-control" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">اسم الطبيب</label>
+                        <input type="text" name="doctor_name" class="form-control" placeholder="د. ...">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">سبب الزيارة *</label>
+                        <input type="text" name="reason" class="form-control" required>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">التشخيص</label>
+                        <textarea name="diagnosis" class="form-control" rows="2"></textarea>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">الوصفة الطبية</label>
+                        <textarea name="prescription" class="form-control" rows="2"></textarea>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">ملاحظات</label>
+                        <textarea name="notes" class="form-control" rows="2"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-success px-4">حفظ الزيارة</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- إضافة عملية -->
+<div class="modal fade" id="addSurgery" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title"><i class="bi bi-scissors me-2"></i>إضافة عملية جراحية</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('add_surgery', patient_id=patient.patient_id) }}">
+                <div class="modal-body row g-3">
+                    <div class="col-12">
+                        <label class="form-label">اسم العملية *</label>
+                        <input type="text" name="surgery_name" class="form-control" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">تاريخ العملية *</label>
+                        <input type="date" name="surgery_date" class="form-control" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">اسم الطبيب</label>
+                        <input type="text" name="doctor_name" class="form-control">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">النتيجة</label>
+                        <select name="result" class="form-select">
+                            <option value="successful">ناجحة ✅</option>
+                            <option value="complications">مضاعفات ⚠️</option>
+                            <option value="failed">فاشلة ❌</option>
+                        </select>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">ملاحظات</label>
+                        <textarea name="notes" class="form-control" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-dark px-4">حفظ العملية</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- إضافة دواء -->
+<div class="modal fade" id="addMedication" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title"><i class="bi bi-capsule me-2"></i>إضافة دواء</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('add_medication', patient_id=patient.patient_id) }}">
+                <div class="modal-body row g-3">
+                    <div class="col-12">
+                        <label class="form-label">اسم الدواء *</label>
+                        <input type="text" name="drug_name" class="form-control" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">الجرعة</label>
+                        <input type="text" name="dosage" class="form-control" placeholder="500mg">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">التكرار</label>
+                        <input type="text" name="frequency" class="form-control" placeholder="مرتين يومياً">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">تاريخ البداية</label>
+                        <input type="date" name="start_date" class="form-control">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">تاريخ النهاية</label>
+                        <input type="date" name="end_date" class="form-control">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">الطبيب الواصف</label>
+                        <input type="text" name="prescribed_by" class="form-control">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-info text-white px-4">حفظ الدواء</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
