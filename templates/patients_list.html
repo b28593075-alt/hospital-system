@@ -1,70 +1,202 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
+
 {% block title %}قائمة المرضى{% endblock %}
-{% block page_title %}<i class="bi bi-people me-2"></i>قائمة المرضى{% endblock %}
+{% block page_title %}👥 قائمة المرضى{% endblock %}
+
 {% block content %}
 
-<div class="card mb-4">
-    <div class="card-body py-3">
-        <form method="GET" class="d-flex gap-3 align-items-center">
-            <input type="text" name="search" class="form-control" style="max-width:350px"
-                   placeholder="🔍 ابحث بالاسم أو رقم المريض..." value="{{ search }}">
-            <button type="submit" class="btn btn-primary px-4">بحث</button>
-            {% if search %}
-            <a href="{{ url_for('patients_list') }}" class="btn btn-outline-secondary">مسح</a>
-            {% endif %}
-            <a href="{{ url_for('add_patient') }}" class="btn btn-success me-auto">
-                <i class="bi bi-person-plus me-1"></i>إضافة مريض
-            </a>
-        </form>
-    </div>
+<style>
+    .search-box {
+        background: #fff;
+        padding: 20px;
+        border-radius: 12px;
+        margin-bottom: 25px;
+        box-shadow: 0 3px 15px rgba(0,0,0,0.08);
+        display: flex;
+        gap: 15px;
+    }
+
+    .search-box input {
+        flex: 1;
+        padding: 12px 15px;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        font-size: 14px;
+    }
+
+    .search-box input:focus {
+        outline: none;
+        border-color: #667eea;
+    }
+
+    .search-box button {
+        padding: 12px 30px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+
+    .search-box button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+    }
+
+    .patients-table-container {
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 3px 15px rgba(0,0,0,0.08);
+        overflow: hidden;
+    }
+
+    .patients-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .patients-table thead {
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    }
+
+    .patients-table th {
+        padding: 18px 20px;
+        text-align: right;
+        font-weight: 700;
+        color: #333;
+        border-bottom: 2px solid #e0e0e0;
+    }
+
+    .patients-table td {
+        padding: 18px 20px;
+        border-bottom: 1px solid #f0f0f0;
+    }
+
+    .patients-table tbody tr:hover {
+        background: #f9f9f9;
+    }
+
+    .patient-name {
+        font-weight: 600;
+        color: #333;
+    }
+
+    .patient-id {
+        color: #999;
+        font-size: 13px;
+    }
+
+    .blood-badge {
+        display: inline-block;
+        background: #ffebee;
+        color: #c62828;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-weight: 600;
+        font-size: 13px;
+    }
+
+    .action-btn {
+        display: inline-block;
+        padding: 8px 16px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: #fff;
+        text-decoration: none;
+        border-radius: 6px;
+        font-size: 13px;
+        font-weight: 600;
+        transition: all 0.3s;
+    }
+
+    .action-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: #999;
+    }
+
+    .empty-state-icon {
+        font-size: 4rem;
+        margin-bottom: 15px;
+    }
+
+    .add-btn {
+        display: inline-block;
+        padding: 12px 30px;
+        background: linear-gradient(135deg, #4CAF50 0%, #388E3C 100%);
+        color: #fff;
+        text-decoration: none;
+        border-radius: 8px;
+        font-weight: 600;
+        margin-bottom: 25px;
+        transition: all 0.3s;
+    }
+
+    .add-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(76, 175, 80, 0.3);
+    }
+</style>
+
+<!-- Add Patient Button -->
+<a href="{{ url_for('add_patient') }}" class="add-btn">➕ إضافة مريض جديد</a>
+
+<!-- Search Box -->
+<div class="search-box">
+    <form style="display: flex; gap: 15px; flex: 1; width: 100%;">
+        <input type="text" name="search" placeholder="ابحث عن المريض برقمه أو اسمه..." 
+            value="{{ search or '' }}" style="flex: 1;">
+        <button type="submit">🔍 بحث</button>
+    </form>
 </div>
 
-<div class="card">
-    <div class="card-body p-0">
-        <table class="table table-hover mb-0">
-            <thead class="table-dark">
+<!-- Patients Table -->
+<div class="patients-table-container">
+    {% if patients %}
+        <table class="patients-table">
+            <thead>
                 <tr>
+                    <th>الاسم</th>
                     <th>رقم المريض</th>
-                    <th>الاسم الكامل</th>
-                    <th>تاريخ الميلاد</th>
-                    <th>الجنس</th>
+                    <th>العمر</th>
                     <th>فصيلة الدم</th>
-                    <th>الهاتف</th>
-                    <th></th>
+                    <th>رقم الهاتف</th>
+                    <th>الإجراء</th>
                 </tr>
             </thead>
             <tbody>
-                {% for p in patients %}
+                {% for patient in patients %}
                 <tr>
-                    <td><span class="patient-id-badge">{{ p.patient_id }}</span></td>
-                    <td><strong>{{ p.full_name }}</strong></td>
-                    <td>{{ p.birth_date.strftime('%Y-%m-%d') if p.birth_date else '-' }}</td>
                     <td>
-                        {% if p.gender == 'male' %}
-                            <span class="badge bg-info">ذكر</span>
-                        {% else %}
-                            <span class="badge bg-danger">أنثى</span>
-                        {% endif %}
+                        <div class="patient-name">{{ patient['full_name'] }}</div>
+                        <div class="patient-id">{{ patient['patient_id'] }}</div>
                     </td>
-                    <td><span class="badge-blood">{{ p.blood_type }}</span></td>
-                    <td>{{ p.phone or '-' }}</td>
+                    <td>{{ patient['patient_id'] }}</td>
+                    <td>{{ patient['birth_date'] }}</td>
                     <td>
-                        <a href="{{ url_for('patient_profile', patient_id=p.patient_id) }}"
-                           class="btn btn-sm btn-primary">
-                            <i class="bi bi-eye me-1"></i>عرض الملف
-                        </a>
+                        <span class="blood-badge">{{ patient['blood_type'] }}</span>
                     </td>
-                </tr>
-                {% else %}
-                <tr>
-                    <td colspan="7" class="text-center text-muted py-5">
-                        <i class="bi bi-search" style="font-size:2rem"></i><br>
-                        لا توجد نتائج
+                    <td>{{ patient['phone'] or '-' }}</td>
+                    <td>
+                        <a href="{{ url_for('patient_profile', patient_id=patient['patient_id']) }}" 
+                            class="action-btn">عرض الملف</a>
                     </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
-    </div>
+    {% else %}
+        <div class="empty-state">
+            <div class="empty-state-icon">👥</div>
+            <p>لا توجد نتائج بحث</p>
+        </div>
+    {% endif %}
 </div>
+
 {% endblock %}
