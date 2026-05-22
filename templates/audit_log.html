@@ -1,43 +1,210 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
+
 {% block title %}سجل العمليات{% endblock %}
-{% block page_title %}<i class="bi bi-shield-check me-2"></i>سجل العمليات (Audit Log){% endblock %}
+{% block page_title %}🔒 سجل العمليات{% endblock %}
+
 {% block content %}
-<div class="card">
-    <div class="card-body p-0">
-        <table class="table table-hover mb-0">
-            <thead class="table-dark">
+
+<style>
+    .logs-container {
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 3px 15px rgba(0,0,0,0.08);
+        overflow: hidden;
+    }
+
+    .logs-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .logs-table thead {
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    }
+
+    .logs-table th {
+        padding: 18px 20px;
+        text-align: right;
+        font-weight: 700;
+        color: #333;
+        border-bottom: 2px solid #e0e0e0;
+    }
+
+    .logs-table td {
+        padding: 18px 20px;
+        border-bottom: 1px solid #f0f0f0;
+    }
+
+    .logs-table tbody tr:hover {
+        background: #f9f9f9;
+    }
+
+    .action-badge {
+        display: inline-block;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-weight: 600;
+        font-size: 12px;
+    }
+
+    .action-login {
+        background: #e8f5e9;
+        color: #2e7d32;
+    }
+
+    .action-logout {
+        background: #ffebee;
+        color: #c62828;
+    }
+
+    .action-view {
+        background: #e3f2fd;
+        color: #1565c0;
+    }
+
+    .action-add {
+        background: #f3e5f5;
+        color: #6a1b9a;
+    }
+
+    .action-search {
+        background: #fff3e0;
+        color: #e65100;
+    }
+
+    .timestamp {
+        color: #999;
+        font-size: 13px;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: #999;
+    }
+
+    .empty-state-icon {
+        font-size: 4rem;
+        margin-bottom: 15px;
+    }
+
+    .filter-box {
+        background: #fff;
+        padding: 20px;
+        border-radius: 12px;
+        margin-bottom: 25px;
+        box-shadow: 0 3px 15px rgba(0,0,0,0.08);
+    }
+
+    .filter-box select,
+    .filter-box input {
+        padding: 10px 12px;
+        border: 2px solid #e0e0e0;
+        border-radius: 6px;
+        font-size: 13px;
+        margin-right: 10px;
+    }
+
+    .filter-box select:focus,
+    .filter-box input:focus {
+        outline: none;
+        border-color: #667eea;
+    }
+
+    .stats-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        margin-bottom: 25px;
+    }
+
+    .stat-mini {
+        background: #fff;
+        padding: 15px;
+        border-radius: 8px;
+        box-shadow: 0 3px 15px rgba(0,0,0,0.08);
+        text-align: center;
+        border-right: 3px solid #667eea;
+    }
+
+    .stat-mini .number {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #667eea;
+    }
+
+    .stat-mini .label {
+        color: #999;
+        font-size: 12px;
+        margin-top: 5px;
+    }
+</style>
+
+<!-- Stats -->
+<div class="stats-row">
+    <div class="stat-mini">
+        <div class="number">{{ logs|length }}</div>
+        <div class="label">إجمالي العمليات</div>
+    </div>
+    <div class="stat-mini">
+        <div class="number">{{ logs|selectattr('action', 'equalto', 'LOGIN')|list|length }}</div>
+        <div class="label">عمليات الدخول</div>
+    </div>
+    <div class="stat-mini">
+        <div class="number">{{ logs|selectattr('action', 'equalto', 'LOGOUT')|list|length }}</div>
+        <div class="label">عمليات الخروج</div>
+    </div>
+</div>
+
+<!-- Logs Table -->
+<div class="logs-container">
+    {% if logs %}
+        <table class="logs-table">
+            <thead>
                 <tr>
+                    <th>الوقت</th>
                     <th>العملية</th>
+                    <th>المستشفى</th>
                     <th>رقم المريض</th>
                     <th>التفاصيل</th>
-                    <th>IP</th>
-                    <th>الوقت</th>
                 </tr>
             </thead>
             <tbody>
                 {% for log in logs %}
                 <tr>
                     <td>
-                        {% if 'LOGIN' in log.action %}<span class="badge bg-success">{{ log.action }}</span>
-                        {% elif 'VIEW' in log.action %}<span class="badge bg-info">{{ log.action }}</span>
-                        {% elif 'ADD' in log.action %}<span class="badge bg-primary">{{ log.action }}</span>
-                        {% else %}<span class="badge bg-secondary">{{ log.action }}</span>{% endif %}
+                        <span class="timestamp">
+                            📅 {{ log['timestamp'] }}
+                        </span>
                     </td>
                     <td>
-                        {% if log.patient_id %}
-                        <a href="{{ url_for('patient_profile', patient_id=log.patient_id) }}"
-                           class="patient-id-badge text-decoration-none">{{ log.patient_id }}</a>
-                        {% else %}-{% endif %}
+                        {% if log['action'] == 'LOGIN' %}
+                            <span class="action-badge action-login">🔓 دخول</span>
+                        {% elif log['action'] == 'LOGOUT' %}
+                            <span class="action-badge action-logout">🚪 خروج</span>
+                        {% elif log['action'].startswith('VIEW') %}
+                            <span class="action-badge action-view">👁️ عرض</span>
+                        {% elif log['action'].startswith('ADD') %}
+                            <span class="action-badge action-add">➕ إضافة</span>
+                        {% elif log['action'] == 'SEARCH_PATIENT' %}
+                            <span class="action-badge action-search">🔍 بحث</span>
+                        {% else %}
+                            <span class="action-badge">{{ log['action'] }}</span>
+                        {% endif %}
                     </td>
-                    <td>{{ log.details or '-' }}</td>
-                    <td><code>{{ log.ip_address }}</code></td>
-                    <td>{{ log.timestamp.strftime('%Y-%m-%d %H:%M') if log.timestamp else '-' }}</td>
+                    <td>{{ log['hospital_name'] or '-' }}</td>
+                    <td>{{ log['patient_id'] or '-' }}</td>
+                    <td style="color: #666; font-size: 13px;">{{ log['details'] or '-' }}</td>
                 </tr>
-                {% else %}
-                <tr><td colspan="5" class="text-center text-muted py-4">لا توجد سجلات</td></tr>
                 {% endfor %}
             </tbody>
         </table>
-    </div>
+    {% else %}
+        <div class="empty-state">
+            <div class="empty-state-icon">📭</div>
+            <p>لا توجد عمليات مسجلة</p>
+        </div>
+    {% endif %}
 </div>
+
 {% endblock %}
