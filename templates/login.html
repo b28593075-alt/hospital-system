@@ -4,80 +4,253 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>تسجيل الدخول - نظام السجلات الطبية</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
-        * { font-family: 'Cairo', sans-serif; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
-            background: linear-gradient(135deg, #0d2137 0%, #1a3a5c 50%, #0d6efd 100%);
-            min-height: 100vh; display: flex; align-items: center; justify-content: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
+
+        .login-container {
+            width: 100%;
+            max-width: 450px;
+            padding: 20px;
+        }
+
         .login-card {
-            background: #fff; border-radius: 20px; padding: 45px 40px;
-            width: 100%; max-width: 420px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            background: #fff;
+            border-radius: 15px;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.2);
+            overflow: hidden;
         }
-        .login-logo { text-align: center; margin-bottom: 30px; }
-        .login-logo .icon {
-            width: 80px; height: 80px; background: linear-gradient(135deg, #1a3a5c, #0d6efd);
-            border-radius: 50%; display: flex; align-items: center; justify-content: center;
-            margin: 0 auto 15px; font-size: 2rem; color: #fff;
+
+        .login-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            padding: 40px 30px;
+            text-align: center;
         }
-        .login-logo h4 { color: #1a3a5c; font-weight: 700; margin: 0; }
-        .login-logo p { color: #6c757d; font-size: 13px; margin: 5px 0 0; }
-        .form-control { padding: 12px 15px; border-radius: 10px; border: 2px solid #e9ecef; }
-        .form-control:focus { border-color: #0d6efd; box-shadow: 0 0 0 3px rgba(13,110,253,0.1); }
+
+        .login-header h1 {
+            font-size: 2rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .login-header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .login-body {
+            padding: 40px 30px;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 10px;
+            color: #333;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.3s;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
         .btn-login {
-            background: linear-gradient(135deg, #1a3a5c, #0d6efd);
-            border: none; padding: 13px; font-size: 16px; font-weight: 700;
-            border-radius: 10px; color: #fff; width: 100%;
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 10px;
         }
-        .input-group-text { border-radius: 10px 0 0 10px; border: 2px solid #e9ecef; border-left: none; background: #f8f9fa; }
-        .demo-box {
-            background: #f0f7ff; border: 1px solid #cce5ff; border-radius: 10px;
-            padding: 12px 15px; margin-top: 20px; font-size: 13px;
+
+        .btn-login:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-login:active {
+            transform: translateY(0);
+        }
+
+        .alert {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            border-left: 4px solid;
+        }
+
+        .alert-danger {
+            background: #ffebee;
+            border-left-color: #f44336;
+            color: #c62828;
+        }
+
+        .alert-warning {
+            background: #fff3e0;
+            border-left-color: #ff9800;
+            color: #e65100;
+        }
+
+        .alert-info {
+            background: #e3f2fd;
+            border-left-color: #2196F3;
+            color: #1565c0;
+        }
+
+        .demo-info {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 25px;
+            font-size: 13px;
+            color: #666;
+            border-right: 3px solid #667eea;
+        }
+
+        .demo-info strong {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+        }
+
+        .demo-info code {
+            display: block;
+            background: #fff;
+            padding: 8px;
+            border-radius: 4px;
+            margin: 5px 0;
+            font-family: 'Courier New', monospace;
+            color: #667eea;
+            direction: ltr;
+        }
+
+        .spinner {
+            display: none;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 480px) {
+            .login-container {
+                padding: 10px;
+            }
+
+            .login-header {
+                padding: 30px 20px;
+            }
+
+            .login-header h1 {
+                font-size: 1.5rem;
+            }
+
+            .login-body {
+                padding: 25px 20px;
+            }
         }
     </style>
 </head>
 <body>
-<div class="login-card">
-    <div class="login-logo">
-        <div class="icon"><i class="bi bi-hospital"></i></div>
-        <h4>نظام السجلات الطبية</h4>
-        <p>Electronic Medical Records System</p>
-    </div>
 
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            {% for cat, msg in messages %}
-                <div class="alert alert-{{ cat }} py-2 mb-3" style="font-size:13px">{{ msg }}</div>
-            {% endfor %}
-        {% endif %}
-    {% endwith %}
-
-    <form method="POST">
-        <div class="mb-3">
-            <label class="form-label fw-bold text-muted" style="font-size:13px">البريد الإلكتروني</label>
-            <input type="email" name="email" class="form-control"
-                   placeholder="hospital@example.com" required>
+<div class="login-container">
+    <div class="login-card">
+        <!-- Header -->
+        <div class="login-header">
+            <h1>🏥</h1>
+            <h1>نظام السجلات الطبية</h1>
+            <p>Electronic Medical Records System</p>
         </div>
-        <div class="mb-4">
-            <label class="form-label fw-bold text-muted" style="font-size:13px">كلمة المرور</label>
-            <input type="password" name="password" class="form-control"
-                   placeholder="••••••••" required>
-        </div>
-        <button type="submit" class="btn-login">
-            <i class="bi bi-box-arrow-in-right me-2"></i>تسجيل الدخول
-        </button>
-    </form>
 
-    <div class="demo-box">
-        <strong><i class="bi bi-info-circle me-1"></i>بيانات تجريبية:</strong><br>
-        📧 rasheed@hospital.iq<br>
-        🔑 Hospital@123
+        <!-- Body -->
+        <div class="login-body">
+            <!-- Flash Messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for cat, msg in messages %}
+                        <div class="alert alert-{{ cat }}">{{ msg }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <!-- Login Form -->
+            <form method="POST" id="loginForm">
+                <div class="form-group">
+                    <label class="form-label">📧 البريد الإلكتروني</label>
+                    <input type="email" class="form-control" name="email" 
+                        placeholder="your@hospital.com" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">🔐 كلمة المرور</label>
+                    <input type="password" class="form-control" name="password" 
+                        placeholder="••••••••" required>
+                </div>
+
+                <button type="submit" class="btn-login">
+                    <span class="spinner" id="spinner"></span>
+                    <span id="btnText">تسجيل الدخول</span>
+                </button>
+            </form>
+
+            <!-- Demo Info -->
+            <div class="demo-info">
+                <strong>🎯 بيانات تجريبية:</strong>
+                <code>rasheed@hospital.iq</code>
+                <code>Hospital@123</code>
+            </div>
+        </div>
     </div>
 </div>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    document.getElementById('loginForm').addEventListener('submit', function() {
+        document.getElementById('spinner').style.display = 'inline-block';
+        document.getElementById('btnText').textContent = 'جاري تسجيل الدخول...';
+    });
+</script>
+
 </body>
 </html>

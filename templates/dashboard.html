@@ -1,72 +1,160 @@
-<!-- ════════════════ dashboard.html ════════════════ -->
-{% extends 'base.html' %}
+{% extends "base.html" %}
+
 {% block title %}لوحة التحكم{% endblock %}
-{% block page_title %}<i class="bi bi-speedometer2 me-2"></i>لوحة التحكم{% endblock %}
+{% block page_title %}📊 لوحة التحكم{% endblock %}
+
 {% block content %}
-<div class="row g-4 mb-4">
-    <div class="col-md-4">
-        <div class="stat-card blue">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <p class="text-muted mb-1" style="font-size:13px">إجمالي المرضى</p>
-                    <div class="number text-primary">{{ total_patients }}</div>
-                </div>
-                <i class="bi bi-people text-primary" style="font-size:2.5rem;opacity:0.3"></i>
-            </div>
-        </div>
+
+<style>
+    .stat-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 25px;
+        margin-bottom: 35px;
+    }
+
+    .stat-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: #fff;
+        padding: 30px;
+        border-radius: 12px;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        text-align: center;
+        transition: all 0.3s;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+
+    .stat-card.blue { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+    .stat-card.green { background: linear-gradient(135deg, #4CAF50 0%, #388E3C 100%); }
+    .stat-card.orange { background: linear-gradient(135deg, #FF9800 0%, #E65100 100%); }
+
+    .stat-number {
+        font-size: 3rem;
+        font-weight: 700;
+        margin: 15px 0;
+    }
+
+    .stat-label {
+        font-size: 14px;
+        opacity: 0.95;
+    }
+
+    .stat-icon {
+        font-size: 2.5rem;
+    }
+
+    .visits-section {
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 3px 15px rgba(0,0,0,0.08);
+        padding: 25px;
+    }
+
+    .visits-section h5 {
+        color: #333;
+        font-weight: 700;
+        margin-bottom: 20px;
+        font-size: 18px;
+    }
+
+    .visit-item {
+        padding: 15px;
+        border-right: 3px solid #667eea;
+        margin-bottom: 12px;
+        background: #f9f9f9;
+        border-radius: 8px;
+        transition: all 0.3s;
+    }
+
+    .visit-item:hover {
+        background: #f0f0f0;
+        transform: translateX(-5px);
+    }
+
+    .visit-patient {
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 5px;
+    }
+
+    .visit-reason {
+        color: #666;
+        font-size: 13px;
+        margin-bottom: 5px;
+    }
+
+    .visit-date {
+        color: #999;
+        font-size: 12px;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 40px 20px;
+        color: #999;
+    }
+
+    .empty-state-icon {
+        font-size: 4rem;
+        margin-bottom: 15px;
+    }
+</style>
+
+<!-- Stats Grid -->
+<div class="stat-grid">
+    <!-- Total Patients -->
+    <div class="stat-card blue">
+        <div class="stat-icon">👥</div>
+        <div class="stat-number">{{ total_patients }}</div>
+        <div class="stat-label">إجمالي المرضى</div>
     </div>
-    <div class="col-md-4">
-        <div class="stat-card green">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <p class="text-muted mb-1" style="font-size:13px">زياراتنا</p>
-                    <div class="number text-success">{{ my_visits }}</div>
-                </div>
-                <i class="bi bi-calendar-check text-success" style="font-size:2.5rem;opacity:0.3"></i>
-            </div>
-        </div>
+
+    <!-- My Visits -->
+    <div class="stat-card green">
+        <div class="stat-icon">🏥</div>
+        <div class="stat-number">{{ my_visits }}</div>
+        <div class="stat-label">الزيارات الطبية</div>
     </div>
-    <div class="col-md-4">
-        <div class="stat-card orange">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <p class="text-muted mb-1" style="font-size:13px">عملياتنا</p>
-                    <div class="number text-warning">{{ my_surgeries }}</div>
-                </div>
-                <i class="bi bi-scissors text-warning" style="font-size:2.5rem;opacity:0.3"></i>
-            </div>
-        </div>
+
+    <!-- My Surgeries -->
+    <div class="stat-card orange">
+        <div class="stat-icon">🔬</div>
+        <div class="stat-number">{{ my_surgeries }}</div>
+        <div class="stat-label">العمليات الجراحية</div>
     </div>
 </div>
 
-<div class="card">
-    <div class="card-header bg-primary text-white py-3">
-        <i class="bi bi-clock-history me-2"></i>آخر الزيارات
-    </div>
-    <div class="card-body p-0">
-        <table class="table table-hover mb-0">
-            <thead class="table-light">
-                <tr>
-                    <th>المريض</th><th>السبب</th><th>الطبيب</th><th>التاريخ</th><th></th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for v in recent_visits %}
-                <tr>
-                    <td><strong>{{ v.full_name }}</strong></td>
-                    <td>{{ v.reason }}</td>
-                    <td>{{ v.doctor_name or '-' }}</td>
-                    <td>{{ v.visit_date.strftime('%Y-%m-%d') if v.visit_date else '-' }}</td>
-                    <td>
-                        <a href="{{ url_for('patient_profile', patient_id=v.patient_id) }}"
-                           class="btn btn-sm btn-outline-primary">عرض</a>
-                    </td>
-                </tr>
-                {% else %}
-                <tr><td colspan="5" class="text-center text-muted py-4">لا توجد زيارات بعد</td></tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
+<!-- Recent Visits -->
+<div class="visits-section">
+    <h5>📋 آخر الزيارات الطبية</h5>
+    
+    {% if recent_visits %}
+        {% for visit in recent_visits %}
+            <div class="visit-item">
+                <div class="visit-patient">
+                    <a href="{{ url_for('patient_profile', patient_id=visit['patient_id']) }}" 
+                        style="text-decoration: none; color: #667eea; font-weight: 700;">
+                        {{ visit['full_name'] }}
+                    </a>
+                </div>
+                <div class="visit-reason">
+                    <strong>السبب:</strong> {{ visit['reason'] }}
+                </div>
+                <div class="visit-date">
+                    📅 {{ visit['visit_date'] }}
+                </div>
+            </div>
+        {% endfor %}
+    {% else %}
+        <div class="empty-state">
+            <div class="empty-state-icon">📭</div>
+            <p>لا توجد زيارات طبية حالياً</p>
+        </div>
+    {% endif %}
 </div>
+
 {% endblock %}
