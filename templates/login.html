@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>تسجيل الدخول - نظام السجلات الطبية</title>
+    <title>تسجيل الدخول - HEMRS</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -13,42 +14,76 @@
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #000851 100%);
             min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: absolute;
+            width: 500px;
+            height: 500px;
+            background: rgba(0, 212, 255, 0.1);
+            border-radius: 50%;
+            top: -100px;
+            left: -100px;
+        }
+
+        body::after {
+            content: '';
+            position: absolute;
+            width: 500px;
+            height: 500px;
+            background: rgba(0, 212, 255, 0.1);
+            border-radius: 50%;
+            bottom: -100px;
+            right: -100px;
         }
 
         .login-container {
             width: 100%;
-            max-width: 450px;
+            max-width: 500px;
             padding: 20px;
+            position: relative;
+            z-index: 1;
         }
 
         .login-card {
-            background: #fff;
-            border-radius: 15px;
-            box-shadow: 0 15px 40px rgba(0,0,0,0.2);
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
             overflow: hidden;
+            backdrop-filter: blur(10px);
         }
 
         .login-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
             color: #fff;
-            padding: 40px 30px;
+            padding: 50px 30px;
             text-align: center;
+        }
+
+        .logo {
+            font-size: 4rem;
+            margin-bottom: 15px;
         }
 
         .login-header h1 {
             font-size: 2rem;
             margin-bottom: 10px;
-            font-weight: 700;
+            font-weight: 800;
+            letter-spacing: -0.5px;
         }
 
         .login-header p {
-            font-size: 14px;
+            font-size: 13px;
             opacity: 0.9;
+            margin: 10px 0 0;
         }
 
         .login-body {
@@ -56,107 +91,59 @@
         }
 
         .form-group {
-            margin-bottom: 25px;
+            margin-bottom: 20px;
         }
 
         .form-label {
             display: block;
-            margin-bottom: 10px;
-            color: #333;
+            margin-bottom: 8px;
+            color: #1e3c72;
             font-weight: 600;
-            font-size: 14px;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .form-control {
             width: 100%;
             padding: 14px 16px;
-            border: 2px solid #e0e0e0;
+            border: 2px solid #e5e7eb;
             border-radius: 8px;
             font-size: 14px;
             transition: all 0.3s;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
         .form-control:focus {
             outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            border-color: #1e3c72;
+            box-shadow: 0 0 0 3px rgba(30, 60, 114, 0.1);
         }
 
         .btn-login {
             width: 100%;
             padding: 14px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
             color: #fff;
             border: none;
             border-radius: 8px;
-            font-size: 16px;
-            font-weight: 600;
+            font-size: 15px;
+            font-weight: 700;
             cursor: pointer;
             transition: all 0.3s;
             margin-top: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
         }
 
         .btn-login:hover {
             transform: translateY(-2px);
-            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+            box-shadow: 0 15px 35px rgba(30, 60, 114, 0.3);
         }
 
         .btn-login:active {
             transform: translateY(0);
-        }
-
-        .alert {
-            padding: 12px 16px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            font-size: 14px;
-            border-left: 4px solid;
-        }
-
-        .alert-danger {
-            background: #ffebee;
-            border-left-color: #f44336;
-            color: #c62828;
-        }
-
-        .alert-warning {
-            background: #fff3e0;
-            border-left-color: #ff9800;
-            color: #e65100;
-        }
-
-        .alert-info {
-            background: #e3f2fd;
-            border-left-color: #2196F3;
-            color: #1565c0;
-        }
-
-        .demo-info {
-            background: #f5f5f5;
-            padding: 15px;
-            border-radius: 8px;
-            margin-top: 25px;
-            font-size: 13px;
-            color: #666;
-            border-right: 3px solid #667eea;
-        }
-
-        .demo-info strong {
-            display: block;
-            margin-bottom: 8px;
-            color: #333;
-        }
-
-        .demo-info code {
-            display: block;
-            background: #fff;
-            padding: 8px;
-            border-radius: 4px;
-            margin: 5px 0;
-            font-family: 'Courier New', monospace;
-            color: #667eea;
-            direction: ltr;
         }
 
         .spinner {
@@ -167,11 +154,72 @@
             border-top-color: #fff;
             border-radius: 50%;
             animation: spin 0.6s linear infinite;
-            margin-right: 8px;
         }
 
         @keyframes spin {
             to { transform: rotate(360deg); }
+        }
+
+        .alert {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-left: 4px solid;
+        }
+
+        .alert-danger {
+            background: #fef2f2;
+            border-left-color: #ef4444;
+            color: #7f1d1d;
+        }
+
+        .alert-warning {
+            background: #fffbeb;
+            border-left-color: #f59e0b;
+            color: #92400e;
+        }
+
+        .demo-credentials {
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 25px;
+            border-left: 3px solid #0284c7;
+        }
+
+        .demo-title {
+            font-weight: 700;
+            color: #0c4a6e;
+            margin-bottom: 10px;
+            font-size: 13px;
+        }
+
+        .credential-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+
+        .credential-label {
+            color: #0c4a6e;
+            font-weight: 600;
+            min-width: 60px;
+        }
+
+        .credential-value {
+            background: #fff;
+            padding: 6px 12px;
+            border-radius: 4px;
+            color: #0284c7;
+            font-family: 'Courier New', monospace;
+            flex: 1;
+            user-select: all;
         }
 
         @media (max-width: 480px) {
@@ -180,7 +228,7 @@
             }
 
             .login-header {
-                padding: 30px 20px;
+                padding: 40px 20px;
             }
 
             .login-header h1 {
@@ -199,9 +247,10 @@
     <div class="login-card">
         <!-- Header -->
         <div class="login-header">
-            <h1>🏥</h1>
-            <h1>نظام السجلات الطبية</h1>
-            <p>Electronic Medical Records System</p>
+            <div class="logo">🏥</div>
+            <h1>HEMRS</h1>
+            <p>Hospital Electronic Medical Records System</p>
+            <p style="margin-top: 15px; font-size: 12px; opacity: 0.8;">نظام إدارة السجلات الطبية الإلكترونية</p>
         </div>
 
         <!-- Body -->
@@ -210,7 +259,10 @@
             {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}
                     {% for cat, msg in messages %}
-                        <div class="alert alert-{{ cat }}">{{ msg }}</div>
+                        <div class="alert alert-{{ cat }}">
+                            <i class="fas fa-{% if cat == 'danger' %}exclamation-circle{% else %}info-circle{% endif %}"></i>
+                            {{ msg }}
+                        </div>
                     {% endfor %}
                 {% endif %}
             {% endwith %}
@@ -220,7 +272,7 @@
                 <div class="form-group">
                     <label class="form-label">📧 البريد الإلكتروني</label>
                     <input type="email" class="form-control" name="email" 
-                        placeholder="your@hospital.com" required>
+                        placeholder="admin@hospital.com" required autofocus>
                 </div>
 
                 <div class="form-group">
@@ -231,15 +283,21 @@
 
                 <button type="submit" class="btn-login">
                     <span class="spinner" id="spinner"></span>
-                    <span id="btnText">تسجيل الدخول</span>
+                    <span id="btnText"><i class="fas fa-sign-in-alt"></i> تسجيل الدخول</span>
                 </button>
             </form>
 
-            <!-- Demo Info -->
-            <div class="demo-info">
-                <strong>🎯 بيانات تجريبية:</strong>
-                <code>rasheed@hospital.iq</code>
-                <code>Hospital@123</code>
+            <!-- Demo Credentials -->
+            <div class="demo-credentials">
+                <div class="demo-title">🎯 بيانات المستخدم التجريبي:</div>
+                <div class="credential-row">
+                    <span class="credential-label">البريد:</span>
+                    <span class="credential-value">mnbvcxz</span>
+                </div>
+                <div class="credential-row">
+                    <span class="credential-label">الرمز:</span>
+                    <span class="credential-value">0987654321</span>
+                </div>
             </div>
         </div>
     </div>
@@ -248,7 +306,8 @@
 <script>
     document.getElementById('loginForm').addEventListener('submit', function() {
         document.getElementById('spinner').style.display = 'inline-block';
-        document.getElementById('btnText').textContent = 'جاري تسجيل الدخول...';
+        document.getElementById('btnText').innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري التحقق...';
+        this.querySelector('button').disabled = true;
     });
 </script>
 

@@ -1,95 +1,151 @@
 {% extends "base.html" %}
 
 {% block title %}لوحة التحكم{% endblock %}
-{% block page_title %}📊 لوحة التحكم{% endblock %}
+{% block page_title %}📊 لوحة التحكم الرئيسية{% endblock %}
 
 {% block content %}
 
 <style>
-    .stat-grid {
+    .dashboard-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
         gap: 25px;
         margin-bottom: 35px;
     }
 
     .stat-card {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: #fff;
+        background: #fff;
+        border-radius: 15px;
         padding: 30px;
-        border-radius: 12px;
-        box-shadow: 0 5px 20px rgba(0,0,0,0.1);
-        text-align: center;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        border-top: 4px solid;
         transition: all 0.3s;
+        position: relative;
+        overflow: hidden;
     }
 
     .stat-card:hover {
         transform: translateY(-5px);
-        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        box-shadow: 0 8px 30px rgba(0,0,0,0.15);
     }
 
-    .stat-card.blue { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
-    .stat-card.green { background: linear-gradient(135deg, #4CAF50 0%, #388E3C 100%); }
-    .stat-card.orange { background: linear-gradient(135deg, #FF9800 0%, #E65100 100%); }
+    .stat-card.blue { border-top-color: #1e3c72; }
+    .stat-card.green { border-top-color: #10b981; }
+    .stat-card.orange { border-top-color: #f59e0b; }
+    .stat-card.red { border-top-color: #ef4444; }
+
+    .stat-icon {
+        font-size: 2.5rem;
+        margin-bottom: 15px;
+    }
 
     .stat-number {
-        font-size: 3rem;
-        font-weight: 700;
+        font-size: 2.8rem;
+        font-weight: 800;
+        color: #1e3c72;
         margin: 15px 0;
     }
 
     .stat-label {
+        color: #666;
         font-size: 14px;
-        opacity: 0.95;
+        font-weight: 600;
     }
 
-    .stat-icon {
-        font-size: 2.5rem;
+    .stat-change {
+        font-size: 12px;
+        color: #10b981;
+        margin-top: 10px;
+        font-weight: 600;
     }
 
-    .visits-section {
-        background: #fff;
+    .quick-actions {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        margin-bottom: 35px;
+    }
+
+    .action-btn {
+        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+        color: #fff;
+        padding: 18px 20px;
         border-radius: 12px;
-        box-shadow: 0 3px 15px rgba(0,0,0,0.08);
-        padding: 25px;
+        text-decoration: none;
+        text-align: center;
+        font-weight: 600;
+        transition: all 0.3s;
+        border: none;
+        cursor: pointer;
+        font-size: 14px;
     }
 
-    .visits-section h5 {
-        color: #333;
-        font-weight: 700;
+    .action-btn:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 20px rgba(30, 60, 114, 0.3);
+    }
+
+    .action-btn i {
+        margin-right: 8px;
+    }
+
+    .recent-items {
+        background: #fff;
+        border-radius: 15px;
+        padding: 25px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    }
+
+    .recent-items h4 {
+        color: #1e3c72;
         margin-bottom: 20px;
         font-size: 18px;
+        font-weight: 700;
     }
 
-    .visit-item {
-        padding: 15px;
-        border-right: 3px solid #667eea;
-        margin-bottom: 12px;
-        background: #f9f9f9;
-        border-radius: 8px;
+    .item-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 15px 0;
+        border-bottom: 1px solid #f0f0f0;
         transition: all 0.3s;
     }
 
-    .visit-item:hover {
-        background: #f0f0f0;
-        transform: translateX(-5px);
+    .item-row:last-child {
+        border-bottom: none;
     }
 
-    .visit-patient {
+    .item-row:hover {
+        background: #f9fafb;
+        padding: 15px;
+        margin: 0 -15px;
+        border-radius: 8px;
+    }
+
+    .item-info {
+        flex: 1;
+    }
+
+    .item-name {
         font-weight: 600;
-        color: #333;
+        color: #1e3c72;
         margin-bottom: 5px;
     }
 
-    .visit-reason {
-        color: #666;
+    .item-detail {
         font-size: 13px;
-        margin-bottom: 5px;
+        color: #999;
     }
 
-    .visit-date {
-        color: #999;
+    .item-badge {
+        display: inline-block;
+        padding: 6px 12px;
+        background: #e0f2fe;
+        color: #0284c7;
+        border-radius: 20px;
         font-size: 12px;
+        font-weight: 600;
     }
 
     .empty-state {
@@ -98,60 +154,82 @@
         color: #999;
     }
 
-    .empty-state-icon {
-        font-size: 4rem;
+    .empty-icon {
+        font-size: 3rem;
         margin-bottom: 15px;
+        opacity: 0.5;
     }
 </style>
 
-<!-- Stats Grid -->
-<div class="stat-grid">
-    <!-- Total Patients -->
+<!-- Quick Actions -->
+<div class="quick-actions">
+    <a href="{{ url_for('add_patient') }}" class="action-btn">
+        <i class="fas fa-user-plus"></i> إضافة مريض جديد
+    </a>
+    <a href="{{ url_for('patients_list') }}" class="action-btn">
+        <i class="fas fa-users"></i> عرض المرضى
+    </a>
+    <a href="{{ url_for('audit_log') }}" class="action-btn">
+        <i class="fas fa-shield-alt"></i> سجل العمليات
+    </a>
+    <a href="{{ url_for('settings') }}" class="action-btn">
+        <i class="fas fa-cog"></i> الإعدادات
+    </a>
+</div>
+
+<!-- Statistics Cards -->
+<div class="dashboard-grid">
     <div class="stat-card blue">
         <div class="stat-icon">👥</div>
         <div class="stat-number">{{ total_patients }}</div>
         <div class="stat-label">إجمالي المرضى</div>
+        <div class="stat-change">↑ جديد هذا الشهر</div>
     </div>
 
-    <!-- My Visits -->
     <div class="stat-card green">
         <div class="stat-icon">🏥</div>
         <div class="stat-number">{{ my_visits }}</div>
         <div class="stat-label">الزيارات الطبية</div>
+        <div class="stat-change">↑ نشاط مستمر</div>
     </div>
 
-    <!-- My Surgeries -->
     <div class="stat-card orange">
         <div class="stat-icon">🔬</div>
         <div class="stat-number">{{ my_surgeries }}</div>
         <div class="stat-label">العمليات الجراحية</div>
+        <div class="stat-change">↑ هذا العام</div>
+    </div>
+
+    <div class="stat-card red">
+        <div class="stat-icon">📁</div>
+        <div class="stat-number">{{ total_files }}</div>
+        <div class="stat-label">الملفات الطبية</div>
+        <div class="stat-change">↑ تحاليل وأشعات</div>
     </div>
 </div>
 
 <!-- Recent Visits -->
-<div class="visits-section">
-    <h5>📋 آخر الزيارات الطبية</h5>
-    
+<div class="recent-items">
+    <h4><i class="fas fa-history"></i> آخر الزيارات الطبية</h4>
     {% if recent_visits %}
         {% for visit in recent_visits %}
-            <div class="visit-item">
-                <div class="visit-patient">
+            <div class="item-row">
+                <div class="item-info">
                     <a href="{{ url_for('patient_profile', patient_id=visit['patient_id']) }}" 
-                        style="text-decoration: none; color: #667eea; font-weight: 700;">
-                        {{ visit['full_name'] }}
+                        style="text-decoration: none;">
+                        <div class="item-name">{{ visit['full_name'] }}</div>
+                        <div class="item-detail">
+                            <strong>السبب:</strong> {{ visit['reason'] }} | 
+                            <strong>الطبيب:</strong> {{ visit['doctor_name'] or 'غير محدد' }}
+                        </div>
                     </a>
                 </div>
-                <div class="visit-reason">
-                    <strong>السبب:</strong> {{ visit['reason'] }}
-                </div>
-                <div class="visit-date">
-                    📅 {{ visit['visit_date'] }}
-                </div>
+                <div class="item-badge">{{ visit['visit_date'][:10] }}</div>
             </div>
         {% endfor %}
     {% else %}
         <div class="empty-state">
-            <div class="empty-state-icon">📭</div>
+            <div class="empty-icon">📭</div>
             <p>لا توجد زيارات طبية حالياً</p>
         </div>
     {% endif %}

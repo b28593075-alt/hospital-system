@@ -1,201 +1,149 @@
 {% extends "base.html" %}
 
 {% block title %}قائمة المرضى{% endblock %}
-{% block page_title %}👥 قائمة المرضى{% endblock %}
+{% block page_title %}👥 قائمة المرضى المسجلين{% endblock %}
 
 {% block content %}
-
 <style>
-    .search-box {
+    .search-section {
         background: #fff;
-        padding: 20px;
-        border-radius: 12px;
+        padding: 25px;
+        border-radius: 15px;
         margin-bottom: 25px;
-        box-shadow: 0 3px 15px rgba(0,0,0,0.08);
+        box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    }
+
+    .search-box {
         display: flex;
         gap: 15px;
     }
 
     .search-box input {
         flex: 1;
-        padding: 12px 15px;
-        border: 2px solid #e0e0e0;
+        padding: 12px 16px;
+        border: 2px solid #e5e7eb;
         border-radius: 8px;
         font-size: 14px;
     }
 
-    .search-box input:focus {
-        outline: none;
-        border-color: #667eea;
-    }
-
     .search-box button {
         padding: 12px 30px;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
         color: #fff;
         border: none;
         border-radius: 8px;
         font-weight: 600;
         cursor: pointer;
-        transition: all 0.3s;
     }
 
-    .search-box button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
-    }
-
-    .patients-table-container {
+    .table-container {
         background: #fff;
-        border-radius: 12px;
-        box-shadow: 0 3px 15px rgba(0,0,0,0.08);
+        border-radius: 15px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.1);
         overflow: hidden;
     }
 
-    .patients-table {
+    .table {
         width: 100%;
         border-collapse: collapse;
     }
 
-    .patients-table thead {
-        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    .table thead {
+        background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
     }
 
-    .patients-table th {
-        padding: 18px 20px;
+    .table th {
+        padding: 16px;
         text-align: right;
         font-weight: 700;
-        color: #333;
-        border-bottom: 2px solid #e0e0e0;
+        color: #1e3c72;
+        border-bottom: 2px solid #e5e7eb;
     }
 
-    .patients-table td {
-        padding: 18px 20px;
-        border-bottom: 1px solid #f0f0f0;
+    .table td {
+        padding: 16px;
+        border-bottom: 1px solid #f3f4f6;
     }
 
-    .patients-table tbody tr:hover {
-        background: #f9f9f9;
+    .table tbody tr:hover {
+        background: #fafafa;
     }
 
     .patient-name {
-        font-weight: 600;
-        color: #333;
-    }
-
-    .patient-id {
-        color: #999;
-        font-size: 13px;
+        font-weight: 700;
+        color: #1e3c72;
     }
 
     .blood-badge {
         display: inline-block;
-        background: #ffebee;
-        color: #c62828;
-        padding: 4px 12px;
+        background: #fee2e2;
+        color: #991b1b;
+        padding: 6px 14px;
         border-radius: 20px;
         font-weight: 600;
-        font-size: 13px;
+        font-size: 12px;
     }
 
-    .action-btn {
-        display: inline-block;
+    .action-link {
+        color: #0284c7;
+        text-decoration: none;
+        font-weight: 600;
         padding: 8px 16px;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: #fff;
-        text-decoration: none;
+        background: #e0f2fe;
         border-radius: 6px;
-        font-size: 13px;
-        font-weight: 600;
         transition: all 0.3s;
     }
 
-    .action-btn:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
-    }
-
-    .empty-state {
-        text-align: center;
-        padding: 60px 20px;
-        color: #999;
-    }
-
-    .empty-state-icon {
-        font-size: 4rem;
-        margin-bottom: 15px;
-    }
-
-    .add-btn {
-        display: inline-block;
-        padding: 12px 30px;
-        background: linear-gradient(135deg, #4CAF50 0%, #388E3C 100%);
+    .action-link:hover {
+        background: #0284c7;
         color: #fff;
-        text-decoration: none;
-        border-radius: 8px;
-        font-weight: 600;
-        margin-bottom: 25px;
-        transition: all 0.3s;
-    }
-
-    .add-btn:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 5px 15px rgba(76, 175, 80, 0.3);
     }
 </style>
 
-<!-- Add Patient Button -->
-<a href="{{ url_for('add_patient') }}" class="add-btn">➕ إضافة مريض جديد</a>
-
-<!-- Search Box -->
-<div class="search-box">
-    <form style="display: flex; gap: 15px; flex: 1; width: 100%;">
-        <input type="text" name="search" placeholder="ابحث عن المريض برقمه أو اسمه..." 
-            value="{{ search or '' }}" style="flex: 1;">
-        <button type="submit">🔍 بحث</button>
+<div class="search-section">
+    <form class="search-box" method="GET">
+        <input type="text" name="search" placeholder="ابحث برقم المريض أو الاسم..." value="{{ search or '' }}">
+        <button type="submit"><i class="fas fa-search"></i> بحث</button>
     </form>
 </div>
 
-<!-- Patients Table -->
-<div class="patients-table-container">
+<div class="table-container">
     {% if patients %}
-        <table class="patients-table">
-            <thead>
-                <tr>
-                    <th>الاسم</th>
-                    <th>رقم المريض</th>
-                    <th>العمر</th>
-                    <th>فصيلة الدم</th>
-                    <th>رقم الهاتف</th>
-                    <th>الإجراء</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for patient in patients %}
-                <tr>
-                    <td>
-                        <div class="patient-name">{{ patient['full_name'] }}</div>
-                        <div class="patient-id">{{ patient['patient_id'] }}</div>
-                    </td>
-                    <td>{{ patient['patient_id'] }}</td>
-                    <td>{{ patient['birth_date'] }}</td>
-                    <td>
-                        <span class="blood-badge">{{ patient['blood_type'] }}</span>
-                    </td>
-                    <td>{{ patient['phone'] or '-' }}</td>
-                    <td>
-                        <a href="{{ url_for('patient_profile', patient_id=patient['patient_id']) }}" 
-                            class="action-btn">عرض الملف</a>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>رقم المريض</th>
+                <th>الاسم الكامل</th>
+                <th>رقم الهوية</th>
+                <th>فصيلة الدم</th>
+                <th>الجنس</th>
+                <th>رقم الهاتف</th>
+                <th>الإجراء</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for patient in patients %}
+            <tr>
+                <td><strong>{{ patient['patient_id'] }}</strong></td>
+                <td class="patient-name">{{ patient['full_name'] }}</td>
+                <td>{{ patient['national_id'] or '-' }}</td>
+                <td><span class="blood-badge">{{ patient['blood_type'] }}</span></td>
+                <td>{{ 'ذكر' if patient['gender'] == 'male' else 'أنثى' }}</td>
+                <td>{{ patient['phone'] or '-' }}</td>
+                <td>
+                    <a href="{{ url_for('patient_profile', patient_id=patient['patient_id']) }}" class="action-link">
+                        <i class="fas fa-folder-open"></i> الملف
+                    </a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
     {% else %}
-        <div class="empty-state">
-            <div class="empty-state-icon">👥</div>
-            <p>لا توجد نتائج بحث</p>
-        </div>
+    <div style="padding: 40px; text-align: center; color: #999;">
+        <div style="font-size: 3rem; margin-bottom: 15px;">📭</div>
+        <p>لا توجد نتائج بحث</p>
+    </div>
     {% endif %}
 </div>
 

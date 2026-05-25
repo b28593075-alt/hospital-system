@@ -3,17 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}نظام السجلات الطبية{% endblock %}</title>
+    <title>{% block title %}HEMRS - نظام السجلات الطبية{% endblock %}</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        :root {
+            --primary: #1e3c72;
+            --secondary: #2a5298;
+            --accent: #00d4ff;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --dark: #0f172a;
+            --light: #f8fafc;
         }
 
         body {
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--light);
+            color: #1f2937;
             min-height: 100vh;
         }
 
@@ -24,103 +37,183 @@
             top: 0;
             width: 280px;
             height: 100vh;
-            background: linear-gradient(180deg, #1a3a52 0%, #0d1f2d 100%);
-            padding: 20px 0;
+            background: linear-gradient(180deg, var(--primary) 0%, var(--dark) 100%);
+            padding: 0;
             z-index: 1000;
-            box-shadow: -5px 0 20px rgba(0,0,0,0.3);
+            box-shadow: -5px 0 30px rgba(0,0,0,0.3);
             overflow-y: auto;
+            display: flex;
+            flex-direction: column;
         }
 
-        .sidebar .logo {
-            text-align: center;
-            padding: 20px;
+        .sidebar-header {
+            padding: 30px 20px;
             border-bottom: 2px solid rgba(255,255,255,0.1);
-            margin-bottom: 20px;
+            text-align: center;
         }
 
-        .sidebar .logo h5 {
+        .logo-icon {
+            font-size: 3rem;
+            margin-bottom: 10px;
+        }
+
+        .logo-text h4 {
             color: #fff;
-            font-weight: 700;
+            font-weight: 800;
             font-size: 16px;
-            margin: 8px 0;
+            margin: 10px 0 5px;
         }
 
-        .sidebar .logo small {
-            color: #a8c4e0;
+        .logo-text small {
+            color: var(--accent);
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .hospital-info {
+            background: rgba(0, 212, 255, 0.1);
+            margin: 20px 15px;
+            padding: 12px 15px;
+            border-radius: 8px;
+            border-left: 3px solid var(--accent);
+            color: #fff;
             font-size: 12px;
         }
 
-        .hospital-badge {
-            background: rgba(255,255,255,0.1);
-            margin: 0 15px 20px;
-            padding: 12px 15px;
-            border-radius: 8px;
-            color: #fff;
-            font-size: 13px;
+        .hospital-info strong {
+            display: block;
+            margin-bottom: 5px;
         }
 
-        .sidebar a {
+        .sidebar-nav {
+            flex: 1;
+            padding: 10px 0;
+        }
+
+        .nav-item {
             display: flex;
             align-items: center;
             gap: 12px;
-            padding: 14px 25px;
-            color: #a8c4e0;
+            padding: 14px 20px;
+            color: rgba(255,255,255,0.7);
             text-decoration: none;
             transition: all 0.3s;
-            font-size: 14px;
             border-right: 3px solid transparent;
+            font-size: 14px;
         }
 
-        .sidebar a:hover,
-        .sidebar a.active {
+        .nav-item:hover,
+        .nav-item.active {
             color: #fff;
-            background: rgba(255,255,255,0.08);
-            border-right-color: #4fc3f7;
+            background: rgba(0, 212, 255, 0.2);
+            border-right-color: var(--accent);
         }
 
-        .sidebar a i {
+        .nav-item i {
             font-size: 18px;
+            min-width: 24px;
+        }
+
+        .sidebar-divider {
+            height: 1px;
+            background: rgba(255,255,255,0.1);
+            margin: 15px 0;
+        }
+
+        .sidebar-footer {
+            padding: 15px 20px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .logout-btn {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            width: 100%;
+            padding: 12px 15px;
+            background: rgba(239, 68, 68, 0.2);
+            color: #fca5a5;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .logout-btn:hover {
+            background: #ef4444;
+            color: #fff;
+            border-color: #ef4444;
         }
 
         /* Main Content */
         .main-content {
             margin-right: 280px;
-            padding: 25px;
             min-height: 100vh;
         }
 
         .topbar {
             background: #fff;
-            padding: 20px 25px;
-            border-radius: 12px;
-            margin-bottom: 25px;
+            padding: 20px 35px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            box-shadow: 0 3px 15px rgba(0,0,0,0.08);
+            gap: 20px;
         }
 
-        .topbar h4 {
-            margin: 0;
-            color: #1a3a52;
+        .page-title {
+            font-size: 24px;
             font-weight: 700;
+            color: var(--primary);
         }
 
-        /* Cards */
+        .topbar-right {
+            display: flex;
+            align-items: center;
+            gap: 25px;
+        }
+
+        .user-info {
+            text-align: right;
+        }
+
+        .user-name {
+            font-weight: 600;
+            color: var(--primary);
+            font-size: 14px;
+        }
+
+        .user-role {
+            color: #999;
+            font-size: 12px;
+        }
+
+        /* Content */
+        .content-area {
+            padding: 35px;
+        }
+
         .card {
             background: #fff;
             border-radius: 12px;
-            box-shadow: 0 3px 15px rgba(0,0,0,0.08);
+            box-shadow: 0 2px 15px rgba(0,0,0,0.08);
             border: none;
-            margin-bottom: 20px;
+            margin-bottom: 25px;
+            overflow: hidden;
         }
 
         .card-header {
-            background: linear-gradient(135deg, #1a3a52 0%, #0d1f2d 100%);
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
             color: #fff;
-            padding: 18px 25px;
+            padding: 20px 25px;
             font-weight: 700;
-            border-radius: 12px 12px 0 0;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
         }
 
         .card-body {
@@ -128,106 +221,143 @@
         }
 
         /* Forms */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 8px;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
         .form-control,
         .form-select {
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
+            width: 100%;
             padding: 12px 15px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
             font-size: 14px;
             transition: all 0.3s;
         }
 
         .form-control:focus,
         .form-select:focus {
-            border-color: #1a3a52;
-            box-shadow: 0 0 0 3px rgba(26,58,82,0.1);
             outline: none;
-        }
-
-        .form-label {
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 8px;
-            font-size: 13px;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(30, 60, 114, 0.1);
         }
 
         /* Buttons */
         .btn {
-            padding: 12px 25px;
+            padding: 12px 24px;
             font-weight: 600;
             border-radius: 8px;
             border: none;
             cursor: pointer;
             transition: all 0.3s;
-            font-size: 14px;
+            font-size: 13px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
         }
 
         .btn-primary {
-            background: linear-gradient(135deg, #1a3a52 0%, #0d1f2d 100%);
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
             color: #fff;
         }
 
         .btn-primary:hover {
             transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(26,58,82,0.3);
+            box-shadow: 0 8px 20px rgba(30, 60, 114, 0.3);
         }
 
         .btn-success {
-            background: linear-gradient(135deg, #4CAF50 0%, #388E3C 100%);
+            background: var(--success);
             color: #fff;
         }
 
         .btn-success:hover {
             transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(76,175,80,0.3);
+            box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3);
         }
 
-        .btn-secondary {
-            background: #f0f0f0;
-            color: #333;
-        }
-
-        .btn-secondary:hover {
-            background: #e0e0e0;
-        }
-
-        .btn-outline-primary {
-            border: 2px solid #1a3a52;
-            color: #1a3a52;
-            background: transparent;
-        }
-
-        .btn-outline-primary:hover {
-            background: #1a3a52;
+        .btn-danger {
+            background: var(--danger);
             color: #fff;
+        }
+
+        .btn-danger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(239, 68, 68, 0.3);
+        }
+
+        /* Alerts */
+        .alert {
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .alert-success {
+            background: #ecfdf5;
+            border-left-color: var(--success);
+            color: #065f46;
+        }
+
+        .alert-danger {
+            background: #fef2f2;
+            border-left-color: var(--danger);
+            color: #7f1d1d;
+        }
+
+        .alert-warning {
+            background: #fffbeb;
+            border-left-color: var(--warning);
+            color: #92400e;
+        }
+
+        .alert-info {
+            background: #f0f9ff;
+            border-left-color: #3b82f6;
+            color: #1e40af;
         }
 
         /* Tables */
         .table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 13px;
         }
 
         .table thead {
-            background: #f5f5f5;
+            background: #f9fafb;
         }
 
         .table th {
             padding: 15px;
             text-align: right;
             font-weight: 700;
-            color: #333;
-            border-bottom: 2px solid #e0e0e0;
+            color: var(--primary);
+            border-bottom: 2px solid #e5e7eb;
+            font-size: 13px;
+            text-transform: uppercase;
         }
 
         .table td {
             padding: 15px;
-            border-bottom: 1px solid #f0f0f0;
+            border-bottom: 1px solid #f3f4f6;
         }
 
         .table tbody tr:hover {
-            background: #f9f9f9;
+            background: #fafafa;
         }
 
         /* Badges */
@@ -239,155 +369,10 @@
             font-size: 12px;
         }
 
-        .badge-blood {
-            background: #ffebee;
-            color: #c62828;
-        }
-
-        .badge-info {
-            background: #e3f2fd;
-            color: #1565c0;
-        }
-
-        .badge-success {
-            background: #e8f5e9;
-            color: #2e7d32;
-        }
-
-        .badge-warning {
-            background: #fff3e0;
-            color: #e65100;
-        }
-
-        .badge-danger {
-            background: #ffebee;
-            color: #c62828;
-        }
-
-        /* Alerts */
-        .alert {
-            padding: 15px 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            border-left: 4px solid;
-        }
-
-        .alert-success {
-            background: #e8f5e9;
-            border-left-color: #4CAF50;
-            color: #2e7d32;
-        }
-
-        .alert-danger {
-            background: #ffebee;
-            border-left-color: #f44336;
-            color: #c62828;
-        }
-
-        .alert-warning {
-            background: #fff3e0;
-            border-left-color: #ff9800;
-            color: #e65100;
-        }
-
-        .alert-info {
-            background: #e3f2fd;
-            border-left-color: #2196F3;
-            color: #1565c0;
-        }
-
-        /* Stat Cards */
-        .stat-card {
-            background: #fff;
-            border-radius: 12px;
-            padding: 25px;
-            box-shadow: 0 3px 15px rgba(0,0,0,0.08);
-            border-right: 4px solid;
-            margin-bottom: 20px;
-        }
-
-        .stat-card.blue {
-            border-right-color: #2196F3;
-        }
-
-        .stat-card.green {
-            border-right-color: #4CAF50;
-        }
-
-        .stat-card.orange {
-            border-right-color: #FF9800;
-        }
-
-        .stat-card .number {
-            font-size: 2.5rem;
-            font-weight: 700;
-            margin: 10px 0;
-        }
-
-        .stat-card .label {
-            color: #999;
-            font-size: 13px;
-            font-weight: 600;
-        }
-
-        /* Modal */
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 2000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0,0,0,0.5);
-        }
-
-        .modal-content {
-            background-color: #fff;
-            margin: 50px auto;
-            padding: 30px;
-            border-radius: 12px;
-            width: 90%;
-            max-width: 500px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
-        }
-
-        /* Utilities */
-        .text-center {
-            text-align: center;
-        }
-
-        .text-muted {
-            color: #999;
-        }
-
-        .mb-0 {
-            margin-bottom: 0;
-        }
-
-        .mb-3 {
-            margin-bottom: 20px;
-        }
-
-        .mt-3 {
-            margin-top: 20px;
-        }
-
-        .d-flex {
-            display: flex;
-        }
-
-        .justify-content-between {
-            justify-content: space-between;
-        }
-
-        .align-items-center {
-            align-items: center;
-        }
-
-        .gap-3 {
-            gap: 20px;
-        }
+        .badge-primary { background: #dbeafe; color: #1e40af; }
+        .badge-success { background: #dcfce7; color: #166534; }
+        .badge-danger { background: #fee2e2; color: #991b1b; }
+        .badge-warning { background: #fef3c7; color: #92400e; }
 
         /* Responsive */
         @media (max-width: 768px) {
@@ -395,17 +380,18 @@
                 width: 100%;
                 height: auto;
                 position: relative;
-                box-shadow: 0 3px 15px rgba(0,0,0,0.1);
             }
 
             .main-content {
                 margin-right: 0;
-                padding: 15px;
             }
 
             .topbar {
                 flex-direction: column;
-                gap: 15px;
+            }
+
+            .content-area {
+                padding: 20px;
             }
         }
     </style>
@@ -415,51 +401,85 @@
 {% if session.hospital_id %}
 <!-- Sidebar -->
 <div class="sidebar">
-    <div class="logo">
-        <h5>🏥 نظام السجلات الطبية</h5>
-        <small>EMR System</small>
+    <div class="sidebar-header">
+        <div class="logo-icon">🏥</div>
+        <div class="logo-text">
+            <h4>HEMRS</h4>
+            <small>Hospital EMR System</small>
+        </div>
     </div>
-    <div class="hospital-badge">
-        <strong>{{ session.hospital_name }}</strong><br>
-        <small>{{ session.hospital_city }}</small>
+
+    <div class="hospital-info">
+        <strong>{{ session.hospital_name }}</strong>
+        {{ session.hospital_city }}
     </div>
-    <a href="{{ url_for('dashboard') }}" {% if request.endpoint == 'dashboard' %}class="active"{% endif %}>
-        📊 <span>لوحة التحكم</span>
-    </a>
-    <a href="{{ url_for('patients_list') }}" {% if 'patient' in request.endpoint %}class="active"{% endif %}>
-        👥 <span>المرضى</span>
-    </a>
-    <a href="{{ url_for('add_patient') }}">
-        ➕ <span>إضافة مريض</span>
-    </a>
-    <a href="{{ url_for('audit_log') }}" {% if request.endpoint == 'audit_log' %}class="active"{% endif %}>
-        🔒 <span>سجل العمليات</span>
-    </a>
-    <hr style="border: none; border-top: 1px solid rgba(255,255,255,0.1); margin: 20px;">
-    <a href="{{ url_for('logout') }}" style="color: #ff6b6b;">
-        🚪 <span>تسجيل الخروج</span>
-    </a>
+
+    <nav class="sidebar-nav">
+        <a href="{{ url_for('dashboard') }}" class="nav-item {% if request.endpoint == 'dashboard' %}active{% endif %}">
+            <i class="fas fa-chart-line"></i>
+            <span>لوحة التحكم</span>
+        </a>
+        <a href="{{ url_for('patients_list') }}" class="nav-item {% if request.endpoint == 'patients_list' %}active{% endif %}">
+            <i class="fas fa-users"></i>
+            <span>المرضى</span>
+        </a>
+        <a href="{{ url_for('add_patient') }}" class="nav-item {% if request.endpoint == 'add_patient' %}active{% endif %}">
+            <i class="fas fa-user-plus"></i>
+            <span>إضافة مريض</span>
+        </a>
+        
+        <div class="sidebar-divider"></div>
+        
+        <a href="{{ url_for('audit_log') }}" class="nav-item {% if request.endpoint == 'audit_log' %}active{% endif %}">
+            <i class="fas fa-shield-alt"></i>
+            <span>سجل العمليات</span>
+        </a>
+        <a href="{{ url_for('settings') }}" class="nav-item {% if request.endpoint == 'settings' %}active{% endif %}">
+            <i class="fas fa-cog"></i>
+            <span>الإعدادات</span>
+        </a>
+    </nav>
+
+    <div class="sidebar-footer">
+        <a href="{{ url_for('logout') }}" class="logout-btn">
+            <i class="fas fa-sign-out-alt"></i>
+            <span>تسجيل الخروج</span>
+        </a>
+    </div>
 </div>
 
 <!-- Main Content -->
 <div class="main-content">
+    <!-- Topbar -->
     <div class="topbar">
-        <h4>{% block page_title %}{% endblock %}</h4>
-        <span style="color: #999; font-size: 13px;">
-            📅 {{ now.strftime('%Y-%m-%d') if now else '' }}
-        </span>
+        <h1 class="page-title">{% block page_title %}{% endblock %}</h1>
+        <div class="topbar-right">
+            <div class="user-info">
+                <div class="user-name">{{ session.hospital_name }}</div>
+                <div class="user-role">مدير المستشفى</div>
+            </div>
+            <div style="width: 40px; height: 40px; background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 18px;">
+                {{ session.hospital_name[0] }}
+            </div>
+        </div>
     </div>
 
-    <!-- Flash Messages -->
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            {% for cat, msg in messages %}
-                <div class="alert alert-{{ cat }}">{{ msg }}</div>
-            {% endfor %}
-        {% endif %}
-    {% endwith %}
+    <!-- Content -->
+    <div class="content-area">
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for cat, msg in messages %}
+                    <div class="alert alert-{{ cat }}">
+                        <i class="fas fa-{% if cat == 'success' %}check-circle{% elif cat == 'danger' %}exclamation-circle{% elif cat == 'warning' %}info-circle{% else %}info-circle{% endif %}"></i>
+                        <span>{{ msg }}</span>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
 
-    {% block content %}{% endblock %}
+        {% block content %}{% endblock %}
+    </div>
 </div>
 
 {% else %}
