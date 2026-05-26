@@ -1,18 +1,20 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash, send_file
+from flask import Flask, render_template, request, redirect, url_for, session, flash
 import psycopg2
 from psycopg2.extras import RealDictCursor
 import bcrypt
 from datetime import datetime
 from functools import wraps
 import os
-import io
-import mimetypes
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 app.secret_key = "hospital_secure_key_2024"
 
+UPLOAD_FOLDER = 'uploads'
 ALLOWED_EXTENSIONS = {'pdf', 'jpg', 'jpeg', 'png', 'gif', 'doc', 'docx'}
+
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024
 
 # PostgreSQL Connection
@@ -164,7 +166,6 @@ def init_db():
             file_type VARCHAR(100),
             file_name VARCHAR(255),
             file_path VARCHAR(500),
-            file_data BYTEA,
             test_date DATE,
             doctor_name VARCHAR(255),
             diagnosis TEXT,
@@ -186,12 +187,6 @@ def init_db():
             timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
         ''')
-
-        # تحديث تلقائي لقاعدة البيانات الحالية لضمان وجود عمود البيانات الثنائية
-        try:
-            exec_db("ALTER TABLE medical_files ADD COLUMN IF NOT EXISTS file_data BYTEA;")
-        except:
-            pass
 
         # تحقق من وجود بيانات تجريبية
         result = query_db("SELECT COUNT(*) as cnt FROM hospitals")
@@ -328,7 +323,7 @@ def patient_profile(patient_id):
     su = query_db('SELECT s.*,h.name as hospital_name FROM surgeries s JOIN hospitals h ON s.hospital_id = h.hospital_id WHERE s.patient_id = %s ORDER BY s.surgery_date DESC', (patient_id,))
     v = query_db('SELECT v.*,h.name as hospital_name FROM visits v JOIN hospitals h ON v.hospital_id = h.hospital_id WHERE v.patient_id = %s ORDER BY v.visit_date DESC', (patient_id,))
     m = query_db('SELECT m.*,h.name as hospital_name FROM medications m JOIN hospitals h ON m.hospital_id = h.hospital_id WHERE m.patient_id = %s ORDER BY m.start_date DESC', (patient_id,))
-    mf = query_db('SELECT id, patient_id, hospital_id, file_type, file_name, test_date, doctor_name, diagnosis, description, uploaded_at FROM medical_files WHERE patient_id = %s ORDER BY uploaded_at DESC', (patient_id,))
+    mf = query_db('SELECT * FROM medical_files WHERE patient_id = %s ORDER BY uploaded_at DESC', (patient_id,))
     log_action("VIEW_PATIENT", patient_id=patient_id)
     return render_template('patient_profile.html', patient=p, diseases=d, allergies=a, surgeries=su, visits=v, medications=m, medical_files=mf)
 
@@ -406,48 +401,16 @@ def upload_file(patient_id):
         if f.filename == '' or not allowed_file(f.filename):
             flash('ملف غير صحيح', 'danger')
             return redirect(url_for('patient_profile', patient_id=patient_id))
-        
-        # قراءة محتوى الملف كبايتات مباشرة بدون حفظ على الهارد ديسك
-        file_binary_data = f.read()
-        
-        # حفظ البيانات الثنائية داخل قاعدة البيانات مباشرة بـ file_data
-        exec_db('INSERT INTO medical_files(patient_id,hospital_id,file_type,file_name,file_path,file_data,test_date,doctor_name,diagnosis,description) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)',
-            (patient_id, session['hospital_id'], request.form.get('file_type','document'), f.filename, '', psycopg2.Binary(file_binary_data), request.form.get('test_date'), request.form.get('doctor_name',''), request.form.get('diagnosis',''), request.form.get('description','')))
-        
+        fn = secure_filename(f"{patient_id}_{datetime.now().timestamp()}_{f.filename}")
+        fp = os.path.join(app.config['UPLOAD_FOLDER'], fn)
+        f.save(fp)
+        exec_db('INSERT INTO medical_files(patient_id,hospital_id,file_type,file_name,file_path,test_date,doctor_name,diagnosis,description) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s)',
+            (patient_id,session['hospital_id'],request.form.get('file_type','document'),f.filename,fp,request.form.get('test_date'),request.form.get('doctor_name',''),request.form.get('diagnosis',''),request.form.get('description','')))
         log_action("UPLOAD_FILE", patient_id=patient_id)
-        flash('تم رفع الملف بنجاح وحفظه داخل قاعدة البيانات الآمنة!', 'success')
+        flash('تم الرفع', 'success')
     except Exception as e:
         flash(f'خطأ: {str(e)}', 'danger')
     return redirect(url_for('patient_profile', patient_id=patient_id))
-
-# راوت جديد مخصص لجلب وعرض الملفات المخزنة داخل الـ database
-@app.route('/files/<int:file_id>')
-@login_required
-def view_file(file_id):
-    try:
-        f = query_db("SELECT file_name, file_data FROM medical_files WHERE id = %s", (file_id,), one=True)
-        if not f or not f['file_data']:
-            flash('الملف غير موجود', 'danger')
-            return redirect(url_for('dashboard'))
-        
-        file_bytes = f['file_data']
-        if isinstance(file_bytes, memoryview):
-            file_bytes = file_bytes.tobytes()
-            
-        # تخمين نوع الملف لعرضه بشكل صحيح في المتصفح (مثل صورة أو PDF)
-        mime_type, _ = mimetypes.guess_type(f['file_name'])
-        if not mime_type:
-            mime_type = 'application/octet-stream'
-            
-        return send_file(
-            io.BytesIO(file_bytes),
-            mimetype=mime_type,
-            download_name=f['file_name'],
-            as_attachment=False # يعرض الملف داخل المتصفح مباشرة ولا يقوم بتحميله إجبارياً
-        )
-    except Exception as e:
-        flash(f'خطأ أثناء فتح الملف: {str(e)}', 'danger')
-        return redirect(url_for('dashboard'))
 
 @app.route('/audit')
 @login_required
