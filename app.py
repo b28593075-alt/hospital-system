@@ -203,7 +203,7 @@ def init_db():
     cursor.execute('''
     INSERT INTO hospitals (hospital_id, name, city, phone, email, password, director_name, address) VALUES
     (?, ?, ?, ?, ?, ?, ?, ?)
-    ''', ('HSP001', 'مستشفى الرشيد التعليمي', 'بغداد', '07701234567', 'mnbvcxz', hashed_password, 'أ.د محمد علي', 'بغداد - الكرادة'))
+    ''', ('HSP001', 'مستشفى الرشيد التعليمي', 'بغداد', '07701234567', 'admin@hospital.iq', hashed_password, 'أ.د محمد علي', 'بغداد - الكرادة'))
     
     db.commit()
     db.close()
