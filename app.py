@@ -1,208 +1,168 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash
-import psycopg2
-from psycopg2.extras import RealDictCursor
+from flask import Flask, render_template, request, redirect, url_for, session, flash, send_file
+import sqlite3
 import bcrypt
 from datetime import datetime
 from functools import wraps
 import os
+import io
+import mimetypes
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 app.secret_key = "hospital_secure_key_2024"
 
-UPLOAD_FOLDER = 'uploads'
 ALLOWED_EXTENSIONS = {'pdf', 'jpg', 'jpeg', 'png', 'gif', 'doc', 'docx'}
-
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024
 
-# PostgreSQL Connection
-DATABASE_URL = os.getenv('DATABASE_URL', 'postgresql://localhost/hospital_db')
-if DATABASE_URL.startswith('postgres://'):
-    DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
+DATABASE = 'hospital.db'
+UPLOAD_FOLDER = 'uploads'
 
-def get_db():
-    conn = psycopg2.connect(DATABASE_URL)
-    conn.row_factory = RealDictCursor
-    return conn
-
-def query_db(query, args=(), one=False):
-    conn = psycopg2.connect(DATABASE_URL)
-    cur = conn.cursor(cursor_factory=RealDictCursor)
-    cur.execute(query, args)
-    rv = cur.fetchall()
-    conn.commit()
-    cur.close()
-    conn.close()
-    return (rv[0] if rv else None) if one else rv
-
-def exec_db(query, args=()):
-    conn = psycopg2.connect(DATABASE_URL)
-    cur = conn.cursor()
-    cur.execute(query, args)
-    conn.commit()
-    cur.close()
-    conn.close()
-
-def init_db():
-    try:
-        exec_db('''
-        CREATE TABLE IF NOT EXISTS hospitals(
-            id SERIAL PRIMARY KEY,
-            hospital_id VARCHAR(50) UNIQUE,
-            name VARCHAR(255),
-            city VARCHAR(100),
-            phone VARCHAR(20),
-            email VARCHAR(255) UNIQUE,
-            password VARCHAR(255),
-            director_name VARCHAR(255),
-            address TEXT,
-            website VARCHAR(255),
-            is_active INTEGER DEFAULT 1,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-        ''')
-
-        exec_db('''
-        CREATE TABLE IF NOT EXISTS patients(
-            id SERIAL PRIMARY KEY,
-            patient_id VARCHAR(50) UNIQUE,
-            full_name VARCHAR(255),
-            birth_date DATE,
-            gender VARCHAR(10),
-            blood_type VARCHAR(5),
-            phone VARCHAR(20),
-            address TEXT,
-            emergency_contact VARCHAR(255),
-            emergency_phone VARCHAR(20),
-            national_id VARCHAR(50) UNIQUE,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-        ''')
-
-        exec_db('''
-        CREATE TABLE IF NOT EXISTS chronic_diseases(
-            id SERIAL PRIMARY KEY,
-            patient_id VARCHAR(50),
-            disease VARCHAR(255),
-            diagnosed DATE,
-            doctor_name VARCHAR(255),
-            notes TEXT,
-            status VARCHAR(50) DEFAULT 'active',
-            FOREIGN KEY(patient_id) REFERENCES patients(patient_id)
-        )
-        ''')
-
-        exec_db('''
-        CREATE TABLE IF NOT EXISTS allergies(
-            id SERIAL PRIMARY KEY,
-            patient_id VARCHAR(50),
-            allergen VARCHAR(255),
-            reaction VARCHAR(255),
-            severity VARCHAR(50) DEFAULT 'medium',
-            FOREIGN KEY(patient_id) REFERENCES patients(patient_id)
-        )
-        ''')
-
-        exec_db('''
-        CREATE TABLE IF NOT EXISTS surgeries(
-            id SERIAL PRIMARY KEY,
-            patient_id VARCHAR(50),
-            hospital_id VARCHAR(50),
-            surgery_name VARCHAR(255),
-            surgery_date DATE,
-            doctor_name VARCHAR(255),
-            surgeon_name VARCHAR(255),
-            anesthesia_type VARCHAR(255),
-            result VARCHAR(50) DEFAULT 'successful',
-            notes TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY(patient_id) REFERENCES patients(patient_id),
-            FOREIGN KEY(hospital_id) REFERENCES hospitals(hospital_id)
-        )
-        ''')
-
-        exec_db('''
-        CREATE TABLE IF NOT EXISTS visits(
-            id SERIAL PRIMARY KEY,
-            patient_id VARCHAR(50),
-            hospital_id VARCHAR(50),
-            visit_date TIMESTAMP,
-            reason VARCHAR(255),
-            diagnosis TEXT,
-            doctor_name VARCHAR(255),
-            chief_complaint TEXT,
-            prescription TEXT,
-            notes TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY(patient_id) REFERENCES patients(patient_id),
-            FOREIGN KEY(hospital_id) REFERENCES hospitals(hospital_id)
-        )
-        ''')
-
-        exec_db('''
-        CREATE TABLE IF NOT EXISTS medications(
-            id SERIAL PRIMARY KEY,
-            patient_id VARCHAR(50),
-            hospital_id VARCHAR(50),
-            drug_name VARCHAR(255),
-            dosage VARCHAR(100),
-            frequency VARCHAR(100),
-            start_date DATE,
-            end_date DATE,
-            prescribed_by VARCHAR(255),
-            indication TEXT,
-            FOREIGN KEY(patient_id) REFERENCES patients(patient_id),
-            FOREIGN KEY(hospital_id) REFERENCES hospitals(hospital_id)
-        )
-        ''')
-
-        exec_db('''
-        CREATE TABLE IF NOT EXISTS medical_files(
-            id SERIAL PRIMARY KEY,
-            patient_id VARCHAR(50),
-            hospital_id VARCHAR(50),
-            file_type VARCHAR(100),
-            file_name VARCHAR(255),
-            file_path VARCHAR(500),
-            test_date DATE,
-            doctor_name VARCHAR(255),
-            diagnosis TEXT,
-            description TEXT,
-            uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY(patient_id) REFERENCES patients(patient_id),
-            FOREIGN KEY(hospital_id) REFERENCES hospitals(hospital_id)
-        )
-        ''')
-
-        exec_db('''
-        CREATE TABLE IF NOT EXISTS audit_log(
-            id SERIAL PRIMARY KEY,
-            hospital_id VARCHAR(50),
-            action VARCHAR(100),
-            patient_id VARCHAR(50),
-            details TEXT,
-            ip_address VARCHAR(50),
-            timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-        ''')
-
-        # تحقق من وجود بيانات تجريبية
-        result = query_db("SELECT COUNT(*) as cnt FROM hospitals")
-        if result and result[0]['cnt'] == 0:
-            pwd = bcrypt.hashpw(b'0987654321', bcrypt.gensalt()).decode()
-            exec_db(
-                "INSERT INTO hospitals(hospital_id,name,city,phone,email,password,director_name,address) VALUES(%s,%s,%s,%s,%s,%s,%s,%s)",
-                ('HSP001', 'مستشفى الرشيد التعليمي', 'بغداد', '07701234567', 'admin@hospital.iq', pwd, 'أ.د محمد علي', 'بغداد - الكرادة')
-            )
-        
-        print("✅ Database initialized successfully!")
-    except Exception as e:
-        print(f"❌ Database error: {e}")
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def get_db():
+    db = sqlite3.connect(DATABASE)
+    db.row_factory = sqlite3.Row
+    return db
+
+def init_db():
+    if os.path.exists(DATABASE):
+        return
+    
+    db = get_db()
+    c = db.cursor()
+    
+    c.execute('''CREATE TABLE IF NOT EXISTS hospitals(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        hospital_id TEXT UNIQUE NOT NULL,
+        name TEXT NOT NULL,
+        city TEXT NOT NULL,
+        phone TEXT,
+        email TEXT UNIQUE NOT NULL,
+        password TEXT NOT NULL,
+        director_name TEXT,
+        address TEXT,
+        website TEXT,
+        is_active INTEGER DEFAULT 1,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )''')
+    
+    c.execute('''CREATE TABLE IF NOT EXISTS patients(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        patient_id TEXT UNIQUE NOT NULL,
+        full_name TEXT NOT NULL,
+        birth_date DATE NOT NULL,
+        gender TEXT NOT NULL,
+        blood_type TEXT NOT NULL,
+        phone TEXT,
+        address TEXT,
+        emergency_contact TEXT,
+        emergency_phone TEXT,
+        national_id TEXT UNIQUE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )''')
+    
+    c.execute('''CREATE TABLE IF NOT EXISTS chronic_diseases(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        patient_id TEXT NOT NULL,
+        disease TEXT NOT NULL,
+        diagnosed DATE,
+        doctor_name TEXT,
+        notes TEXT,
+        status TEXT DEFAULT 'active',
+        FOREIGN KEY(patient_id) REFERENCES patients(patient_id)
+    )''')
+    
+    c.execute('''CREATE TABLE IF NOT EXISTS allergies(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        patient_id TEXT NOT NULL,
+        allergen TEXT NOT NULL,
+        reaction TEXT,
+        severity TEXT DEFAULT 'medium',
+        FOREIGN KEY(patient_id) REFERENCES patients(patient_id)
+    )''')
+    
+    c.execute('''CREATE TABLE IF NOT EXISTS surgeries(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        patient_id TEXT NOT NULL,
+        hospital_id TEXT NOT NULL,
+        surgery_name TEXT NOT NULL,
+        surgery_date DATE NOT NULL,
+        doctor_name TEXT,
+        surgeon_name TEXT,
+        anesthesia_type TEXT,
+        result TEXT DEFAULT 'successful',
+        notes TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(patient_id) REFERENCES patients(patient_id),
+        FOREIGN KEY(hospital_id) REFERENCES hospitals(hospital_id)
+    )''')
+    
+    c.execute('''CREATE TABLE IF NOT EXISTS visits(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        patient_id TEXT NOT NULL,
+        hospital_id TEXT NOT NULL,
+        visit_date DATETIME NOT NULL,
+        reason TEXT NOT NULL,
+        diagnosis TEXT,
+        doctor_name TEXT,
+        chief_complaint TEXT,
+        prescription TEXT,
+        notes TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(patient_id) REFERENCES patients(patient_id),
+        FOREIGN KEY(hospital_id) REFERENCES hospitals(hospital_id)
+    )''')
+    
+    c.execute('''CREATE TABLE IF NOT EXISTS medications(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        patient_id TEXT NOT NULL,
+        hospital_id TEXT NOT NULL,
+        drug_name TEXT NOT NULL,
+        dosage TEXT,
+        frequency TEXT,
+        start_date DATE,
+        end_date DATE,
+        prescribed_by TEXT,
+        indication TEXT,
+        FOREIGN KEY(patient_id) REFERENCES patients(patient_id),
+        FOREIGN KEY(hospital_id) REFERENCES hospitals(hospital_id)
+    )''')
+    
+    c.execute('''CREATE TABLE IF NOT EXISTS medical_files(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        patient_id TEXT NOT NULL,
+        hospital_id TEXT NOT NULL,
+        file_type TEXT NOT NULL,
+        file_name TEXT NOT NULL,
+        file_data BLOB,
+        test_date DATE,
+        doctor_name TEXT,
+        diagnosis TEXT,
+        description TEXT,
+        uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(patient_id) REFERENCES patients(patient_id),
+        FOREIGN KEY(hospital_id) REFERENCES hospitals(hospital_id)
+    )''')
+    
+    c.execute('''CREATE TABLE IF NOT EXISTS audit_log(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        hospital_id TEXT,
+        action TEXT NOT NULL,
+        patient_id TEXT,
+        details TEXT,
+        ip_address TEXT,
+        timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )''')
+    
+    pwd = bcrypt.hashpw(b'0987654321', bcrypt.gensalt()).decode()
+    c.execute('INSERT INTO hospitals(hospital_id,name,city,phone,email,password,director_name,address) VALUES(?,?,?,?,?,?,?,?)',
+        ('HSP001','مستشفى الرشيد التعليمي','بغداد','07701234567','admin@hospital.iq',pwd,'أ.د محمد علي','بغداد - الكرادة'))
+    
+    db.commit()
+    db.close()
 
 def login_required(f):
     @wraps(f)
@@ -215,15 +175,21 @@ def login_required(f):
 
 def log_action(action, patient_id=None, details=None):
     try:
-        exec_db(
-            'INSERT INTO audit_log(hospital_id,action,patient_id,details,ip_address) VALUES(%s,%s,%s,%s,%s)',
-            (session.get('hospital_id','SYSTEM'), action, patient_id, details, request.remote_addr)
-        )
+        db = get_db()
+        c = db.cursor()
+        c.execute('INSERT INTO audit_log(hospital_id,action,patient_id,details,ip_address) VALUES(?,?,?,?,?)',
+            (session.get('hospital_id','SYSTEM'),action,patient_id,details,request.remote_addr))
+        db.commit()
+        c.close()
+        db.close()
     except:pass
 
 def gen_patient_id():
-    result = query_db("SELECT COUNT(*) as cnt FROM patients")
-    cnt = result[0]['cnt'] if result else 0
+    db = get_db()
+    c = db.cursor()
+    c.execute("SELECT COUNT(*) as cnt FROM patients")
+    cnt = c.fetchone()['cnt']
+    db.close()
     return f"PAT{str(cnt + 1).zfill(6)}"
 
 @app.route('/')
@@ -235,15 +201,19 @@ def login():
     if request.method == 'POST':
         email = request.form['email'].strip()
         password = request.form['password'].strip()
-        result = query_db("SELECT * FROM hospitals WHERE email = %s AND is_active = 1", (email,), one=True)
+        db = get_db()
+        c = db.cursor()
+        c.execute("SELECT * FROM hospitals WHERE email = ? AND is_active = 1", (email,))
+        h = c.fetchone()
+        db.close()
         
-        if result and bcrypt.checkpw(password.encode(), result['password'].encode()):
-            session['hospital_id'] = result['hospital_id']
-            session['hospital_name'] = result['name']
-            session['hospital_city'] = result['city']
-            session['director_name'] = result['director_name']
+        if h and bcrypt.checkpw(password.encode(), h['password'].encode()):
+            session['hospital_id'] = h['hospital_id']
+            session['hospital_name'] = h['name']
+            session['hospital_city'] = h['city']
+            session['director_name'] = h['director_name']
             log_action("LOGIN")
-            flash(f"مرحباً {result['name']}", 'success')
+            flash(f"مرحباً {h['name']}", 'success')
             return redirect(url_for('dashboard'))
         flash('بيانات غير صحيحة', 'danger')
     return render_template('login.html')
@@ -259,41 +229,61 @@ def logout():
 @app.route('/dashboard')
 @login_required
 def dashboard():
-    total = query_db("SELECT COUNT(*) as cnt FROM patients")[0]['cnt']
-    visits = query_db("SELECT COUNT(*) as cnt FROM visits WHERE hospital_id = %s", (session['hospital_id'],))[0]['cnt']
-    surgeries = query_db("SELECT COUNT(*) as cnt FROM surgeries WHERE hospital_id = %s", (session['hospital_id'],))[0]['cnt']
-    files = query_db("SELECT COUNT(*) as cnt FROM medical_files WHERE hospital_id = %s", (session['hospital_id'],))[0]['cnt']
-    recent = query_db('SELECT v.*,p.full_name FROM visits v JOIN patients p ON v.patient_id = p.patient_id WHERE v.hospital_id = %s ORDER BY v.visit_date DESC LIMIT 5', (session['hospital_id'],))
-    return render_template('dashboard.html', total_patients=total, my_visits=visits, my_surgeries=surgeries, total_files=files, recent_visits=recent)
+    db = get_db()
+    c = db.cursor()
+    c.execute("SELECT COUNT(*) as cnt FROM patients")
+    p_cnt = c.fetchone()['cnt']
+    c.execute("SELECT COUNT(*) as cnt FROM visits WHERE hospital_id = ?", (session['hospital_id'],))
+    v_cnt = c.fetchone()['cnt']
+    c.execute("SELECT COUNT(*) as cnt FROM surgeries WHERE hospital_id = ?", (session['hospital_id'],))
+    s_cnt = c.fetchone()['cnt']
+    c.execute("SELECT COUNT(*) as cnt FROM medical_files WHERE hospital_id = ?", (session['hospital_id'],))
+    f_cnt = c.fetchone()['cnt']
+    c.execute('SELECT v.*,p.full_name FROM visits v JOIN patients p ON v.patient_id = p.patient_id WHERE v.hospital_id = ? ORDER BY v.visit_date DESC LIMIT 5', (session['hospital_id'],))
+    recent = c.fetchall()
+    db.close()
+    return render_template('dashboard.html', total_patients=p_cnt, my_visits=v_cnt, my_surgeries=s_cnt, total_files=f_cnt, recent_visits=recent)
 
 @app.route('/settings', methods=['GET', 'POST'])
 @login_required
 def settings():
+    db = get_db()
+    c = db.cursor()
     if request.method == 'POST':
-        h = query_db("SELECT * FROM hospitals WHERE hospital_id = %s", (session['hospital_id'],), one=True)
+        c.execute("SELECT * FROM hospitals WHERE hospital_id = ?", (session['hospital_id'],))
+        h = c.fetchone()
         if not bcrypt.checkpw(request.form.get('current_password').encode(), h['password'].encode()):
             flash('كلمة المرور غير صحيحة', 'danger')
+            db.close()
             return redirect(url_for('settings'))
         np = request.form.get('new_password')
         pwd = bcrypt.hashpw(np.encode(), bcrypt.gensalt()).decode() if np else h['password']
-        exec_db('UPDATE hospitals SET name=%s,director_name=%s,phone=%s,address=%s,website=%s,password=%s WHERE hospital_id=%s', 
+        c.execute('UPDATE hospitals SET name=?,director_name=?,phone=?,address=?,website=?,password=? WHERE hospital_id=?',
             (request.form.get('name'),request.form.get('director_name'),request.form.get('phone'),request.form.get('address'),request.form.get('website'),pwd,session['hospital_id']))
+        db.commit()
         session['hospital_name'] = request.form.get('name')
         log_action("UPDATE_SETTINGS")
         flash('تم التحديث', 'success')
+        db.close()
         return redirect(url_for('settings'))
-    h = query_db("SELECT * FROM hospitals WHERE hospital_id = %s", (session['hospital_id'],), one=True)
+    c.execute("SELECT * FROM hospitals WHERE hospital_id = ?", (session['hospital_id'],))
+    h = c.fetchone()
+    db.close()
     return render_template('settings.html', hospital=h)
 
 @app.route('/patients')
 @login_required
 def patients_list():
     s = request.args.get('search', '').strip()
+    db = get_db()
+    c = db.cursor()
     if s:
-        ps = query_db('SELECT * FROM patients WHERE full_name ILIKE %s OR patient_id ILIKE %s ORDER BY created_at DESC', (f'%{s}%', f'%{s}%'))
+        c.execute('SELECT * FROM patients WHERE full_name LIKE ? OR patient_id LIKE ? OR national_id LIKE ? ORDER BY created_at DESC', (f'%{s}%', f'%{s}%', f'%{s}%'))
         log_action("SEARCH_PATIENT", details=f"بحث: {s}")
     else:
-        ps = query_db("SELECT * FROM patients ORDER BY created_at DESC")
+        c.execute("SELECT * FROM patients ORDER BY created_at DESC")
+    ps = c.fetchall()
+    db.close()
     return render_template('patients_list.html', patients=ps, search=s)
 
 @app.route('/patients/add', methods=['GET', 'POST'])
@@ -301,93 +291,145 @@ def patients_list():
 def add_patient():
     if request.method == 'POST':
         pid = gen_patient_id()
+        db = get_db()
+        c = db.cursor()
         try:
-            exec_db('INSERT INTO patients(patient_id,full_name,birth_date,gender,blood_type,phone,address,emergency_contact,emergency_phone,national_id) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)',
-                (pid,request.form['full_name'],request.form['birth_date'],request.form['gender'],request.form['blood_type'],request.form.get('phone',''),request.form.get('address',''),request.form.get('emergency_contact',''),request.form.get('emergency_phone',''),request.form.get('national_id','')))
+            national_id = request.form.get('national_id', '').strip()
+            if not national_id:
+                national_id = None
+                
+            phone = request.form.get('phone', '').strip()
+            if not phone:
+                phone = None
+            
+            c.execute('INSERT INTO patients(patient_id,full_name,birth_date,gender,blood_type,phone,address,emergency_contact,emergency_phone,national_id) VALUES(?,?,?,?,?,?,?,?,?,?)',
+                (pid, request.form['full_name'], request.form['birth_date'], request.form['gender'], request.form['blood_type'], phone, request.form.get('address',''), request.form.get('emergency_contact',''), request.form.get('emergency_phone',''), national_id))
+            db.commit()
             log_action("ADD_PATIENT", patient_id=pid, details=f"إضافة: {request.form['full_name']}")
             flash(f'تم الإضافة! رقم: {pid}', 'success')
+            db.close()
             return redirect(url_for('patient_profile', patient_id=pid))
         except Exception as e:
+            db.rollback()
             flash(f'خطأ: {str(e)}', 'danger')
+            db.close()
     return render_template('add_patient.html')
 
 @app.route('/patients/<patient_id>')
 @login_required
 def patient_profile(patient_id):
-    p = query_db("SELECT * FROM patients WHERE patient_id = %s", (patient_id,), one=True)
+    db = get_db()
+    c = db.cursor()
+    c.execute("SELECT * FROM patients WHERE patient_id = ?", (patient_id,))
+    p = c.fetchone()
     if not p:
         flash('المريض غير موجود', 'danger')
+        db.close()
         return redirect(url_for('patients_list'))
-    d = query_db("SELECT * FROM chronic_diseases WHERE patient_id = %s", (patient_id,))
-    a = query_db("SELECT * FROM allergies WHERE patient_id = %s", (patient_id,))
-    su = query_db('SELECT s.*,h.name as hospital_name FROM surgeries s JOIN hospitals h ON s.hospital_id = h.hospital_id WHERE s.patient_id = %s ORDER BY s.surgery_date DESC', (patient_id,))
-    v = query_db('SELECT v.*,h.name as hospital_name FROM visits v JOIN hospitals h ON v.hospital_id = h.hospital_id WHERE v.patient_id = %s ORDER BY v.visit_date DESC', (patient_id,))
-    m = query_db('SELECT m.*,h.name as hospital_name FROM medications m JOIN hospitals h ON m.hospital_id = h.hospital_id WHERE m.patient_id = %s ORDER BY m.start_date DESC', (patient_id,))
-    mf = query_db('SELECT * FROM medical_files WHERE patient_id = %s ORDER BY uploaded_at DESC', (patient_id,))
+    c.execute("SELECT * FROM chronic_diseases WHERE patient_id = ?", (patient_id,))
+    d = c.fetchall()
+    c.execute("SELECT * FROM allergies WHERE patient_id = ?", (patient_id,))
+    a = c.fetchall()
+    c.execute('SELECT s.*,h.name as hospital_name FROM surgeries s JOIN hospitals h ON s.hospital_id = h.hospital_id WHERE s.patient_id = ? ORDER BY s.surgery_date DESC', (patient_id,))
+    su = c.fetchall()
+    c.execute('SELECT v.*,h.name as hospital_name FROM visits v JOIN hospitals h ON v.hospital_id = h.hospital_id WHERE v.patient_id = ? ORDER BY v.visit_date DESC', (patient_id,))
+    v = c.fetchall()
+    c.execute('SELECT m.*,h.name as hospital_name FROM medications m JOIN hospitals h ON m.hospital_id = h.hospital_id WHERE m.patient_id = ? ORDER BY m.start_date DESC', (patient_id,))
+    m = c.fetchall()
+    c.execute('SELECT id, patient_id, hospital_id, file_type, file_name, test_date, doctor_name, diagnosis, description, uploaded_at FROM medical_files WHERE patient_id = ? ORDER BY uploaded_at DESC', (patient_id,))
+    mf = c.fetchall()
+    db.close()
     log_action("VIEW_PATIENT", patient_id=patient_id)
     return render_template('patient_profile.html', patient=p, diseases=d, allergies=a, surgeries=su, visits=v, medications=m, medical_files=mf)
 
 @app.route('/patients/<patient_id>/edit', methods=['GET', 'POST'])
 @login_required
 def edit_patient(patient_id):
+    db = get_db()
+    c = db.cursor()
     if request.method == 'POST':
         try:
-            exec_db('UPDATE patients SET full_name=%s,birth_date=%s,gender=%s,blood_type=%s,phone=%s,address=%s,emergency_contact=%s,emergency_phone=%s,national_id=%s WHERE patient_id=%s',
+            c.execute('UPDATE patients SET full_name=?,birth_date=?,gender=?,blood_type=?,phone=?,address=?,emergency_contact=?,emergency_phone=?,national_id=? WHERE patient_id=?',
                 (request.form['full_name'],request.form['birth_date'],request.form['gender'],request.form['blood_type'],request.form.get('phone',''),request.form.get('address',''),request.form.get('emergency_contact',''),request.form.get('emergency_phone',''),request.form.get('national_id',''),patient_id))
+            db.commit()
             log_action("EDIT_PATIENT", patient_id=patient_id)
             flash('تم التحديث', 'success')
+            db.close()
             return redirect(url_for('patient_profile', patient_id=patient_id))
         except Exception as e:
+            db.rollback()
             flash(f'خطأ: {str(e)}', 'danger')
-    p = query_db("SELECT * FROM patients WHERE patient_id = %s", (patient_id,), one=True)
+    c.execute("SELECT * FROM patients WHERE patient_id = ?", (patient_id,))
+    p = c.fetchone()
+    db.close()
     return render_template('edit_patient.html', patient=p) if p else redirect(url_for('patients_list'))
 
 @app.route('/patients/<patient_id>/add_disease', methods=['POST'])
 @login_required
 def add_disease(patient_id):
+    db = get_db()
+    c = db.cursor()
     try:
-        exec_db('INSERT INTO chronic_diseases(patient_id,disease,diagnosed,doctor_name,status) VALUES(%s,%s,%s,%s,%s)',
+        c.execute('INSERT INTO chronic_diseases(patient_id,disease,diagnosed,doctor_name,status) VALUES(?,?,?,?,?)',
             (patient_id,request.form['disease'],request.form.get('diagnosed'),request.form.get('doctor_name',''),request.form.get('status','active')))
+        db.commit()
         log_action("ADD_DISEASE", patient_id=patient_id)
         flash('تم الإضافة', 'success')
     except Exception as e:
         flash(f'خطأ: {str(e)}', 'danger')
+    finally:
+        db.close()
     return redirect(url_for('patient_profile', patient_id=patient_id))
 
 @app.route('/patients/<patient_id>/add_visit', methods=['POST'])
 @login_required
 def add_visit(patient_id):
+    db = get_db()
+    c = db.cursor()
     try:
-        exec_db('INSERT INTO visits(patient_id,hospital_id,visit_date,reason,diagnosis,doctor_name,chief_complaint,prescription,notes) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s)',
+        c.execute('INSERT INTO visits(patient_id,hospital_id,visit_date,reason,diagnosis,doctor_name,chief_complaint,prescription,notes) VALUES(?,?,?,?,?,?,?,?,?)',
             (patient_id,session['hospital_id'],request.form['visit_date'],request.form['reason'],request.form.get('diagnosis',''),request.form.get('doctor_name',''),request.form.get('chief_complaint',''),request.form.get('prescription',''),request.form.get('notes','')))
+        db.commit()
         log_action("ADD_VISIT", patient_id=patient_id)
         flash('تم الإضافة', 'success')
     except Exception as e:
         flash(f'خطأ: {str(e)}', 'danger')
+    finally:
+        db.close()
     return redirect(url_for('patient_profile', patient_id=patient_id))
 
 @app.route('/patients/<patient_id>/add_surgery', methods=['POST'])
 @login_required
 def add_surgery(patient_id):
+    db = get_db()
+    c = db.cursor()
     try:
-        exec_db('INSERT INTO surgeries(patient_id,hospital_id,surgery_name,surgery_date,doctor_name,surgeon_name,anesthesia_type,result,notes) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s)',
+        c.execute('INSERT INTO surgeries(patient_id,hospital_id,surgery_name,surgery_date,doctor_name,surgeon_name,anesthesia_type,result,notes) VALUES(?,?,?,?,?,?,?,?,?)',
             (patient_id,session['hospital_id'],request.form['surgery_name'],request.form['surgery_date'],request.form.get('doctor_name',''),request.form.get('surgeon_name',''),request.form.get('anesthesia_type',''),request.form.get('result','successful'),request.form.get('notes','')))
+        db.commit()
         log_action("ADD_SURGERY", patient_id=patient_id)
         flash('تم الإضافة', 'success')
     except Exception as e:
         flash(f'خطأ: {str(e)}', 'danger')
+    finally:
+        db.close()
     return redirect(url_for('patient_profile', patient_id=patient_id))
 
 @app.route('/patients/<patient_id>/add_medication', methods=['POST'])
 @login_required
 def add_medication(patient_id):
+    db = get_db()
+    c = db.cursor()
     try:
-        exec_db('INSERT INTO medications(patient_id,hospital_id,drug_name,dosage,frequency,start_date,end_date,prescribed_by,indication) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s)',
+        c.execute('INSERT INTO medications(patient_id,hospital_id,drug_name,dosage,frequency,start_date,end_date,prescribed_by,indication) VALUES(?,?,?,?,?,?,?,?,?)',
             (patient_id,session['hospital_id'],request.form['drug_name'],request.form.get('dosage',''),request.form.get('frequency',''),request.form.get('start_date'),request.form.get('end_date'),request.form.get('prescribed_by',''),request.form.get('indication','')))
+        db.commit()
         log_action("ADD_MEDICATION", patient_id=patient_id)
         flash('تم الإضافة', 'success')
     except Exception as e:
         flash(f'خطأ: {str(e)}', 'danger')
+    finally:
+        db.close()
     return redirect(url_for('patient_profile', patient_id=patient_id))
 
 @app.route('/patients/<patient_id>/upload_file', methods=['POST'])
@@ -397,25 +439,77 @@ def upload_file(patient_id):
         if 'file' not in request.files:
             flash('لم يتم اختيار ملف', 'danger')
             return redirect(url_for('patient_profile', patient_id=patient_id))
+        
         f = request.files['file']
         if f.filename == '' or not allowed_file(f.filename):
             flash('ملف غير صحيح', 'danger')
             return redirect(url_for('patient_profile', patient_id=patient_id))
-        fn = secure_filename(f"{patient_id}_{datetime.now().timestamp()}_{f.filename}")
-        fp = os.path.join(app.config['UPLOAD_FOLDER'], fn)
-        f.save(fp)
-        exec_db('INSERT INTO medical_files(patient_id,hospital_id,file_type,file_name,file_path,test_date,doctor_name,diagnosis,description) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s)',
-            (patient_id,session['hospital_id'],request.form.get('file_type','document'),f.filename,fp,request.form.get('test_date'),request.form.get('doctor_name',''),request.form.get('diagnosis',''),request.form.get('description','')))
+        
+        # قراءة محتوى الملف
+        file_data = f.read()
+        
+        db = get_db()
+        c = db.cursor()
+        
+        # حفظ في قاعدة البيانات
+        c.execute('INSERT INTO medical_files(patient_id,hospital_id,file_type,file_name,file_data,test_date,doctor_name,diagnosis,description) VALUES(?,?,?,?,?,?,?,?,?)',
+            (patient_id, session['hospital_id'], request.form.get('file_type','document'), 
+             f.filename, file_data, request.form.get('test_date'), 
+             request.form.get('doctor_name',''), request.form.get('diagnosis',''), 
+             request.form.get('description','')))
+        
+        db.commit()
+        db.close()
+        
         log_action("UPLOAD_FILE", patient_id=patient_id)
-        flash('تم الرفع', 'success')
+        flash('✅ تم رفع الملف بنجاح وحفظه!', 'success')
     except Exception as e:
-        flash(f'خطأ: {str(e)}', 'danger')
+        flash(f'❌ خطأ: {str(e)}', 'danger')
+    
     return redirect(url_for('patient_profile', patient_id=patient_id))
+
+@app.route('/files/<int:file_id>')
+@login_required
+def view_file(file_id):
+    try:
+        db = get_db()
+        c = db.cursor()
+        c.execute("SELECT file_name, file_data FROM medical_files WHERE id = ?", (file_id,))
+        f = c.fetchone()
+        db.close()
+        
+        if not f or not f['file_data']:
+            flash('الملف غير موجود', 'danger')
+            return redirect(url_for('dashboard'))
+        
+        file_data = f['file_data']
+        
+        # التعامل مع memoryview
+        if isinstance(file_data, memoryview):
+            file_data = file_data.tobytes()
+        
+        mime_type, _ = mimetypes.guess_type(f['file_name'])
+        if not mime_type:
+            mime_type = 'application/octet-stream'
+        
+        return send_file(
+            io.BytesIO(file_data),
+            mimetype=mime_type,
+            download_name=f['file_name'],
+            as_attachment=False
+        )
+    except Exception as e:
+        flash(f'❌ خطأ: {str(e)}', 'danger')
+        return redirect(url_for('dashboard'))
 
 @app.route('/audit')
 @login_required
 def audit_log():
-    logs = query_db('SELECT a.*,h.name as hospital_name FROM audit_log a LEFT JOIN hospitals h ON a.hospital_id = h.hospital_id WHERE a.hospital_id = %s ORDER BY a.timestamp DESC LIMIT 200', (session['hospital_id'],))
+    db = get_db()
+    c = db.cursor()
+    c.execute('SELECT a.*,h.name as hospital_name FROM audit_log a LEFT JOIN hospitals h ON a.hospital_id = h.hospital_id WHERE a.hospital_id = ? ORDER BY a.timestamp DESC LIMIT 200', (session['hospital_id'],))
+    logs = c.fetchall()
+    db.close()
     return render_template('audit_log.html', logs=logs)
 
 if __name__ == '__main__':
