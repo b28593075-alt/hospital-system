@@ -258,12 +258,12 @@ def settings():
             return redirect(url_for('settings'))
         np = request.form.get('new_password')
         pwd = bcrypt.hashpw(np.encode(), bcrypt.gensalt()).decode() if np else h['password']
-        c.execute('UPDATE hospitals SET name=?,director_name=?,phone=?,address=?,website=?,password=? WHERE hospital_id=?',
-            (request.form.get('name'),request.form.get('director_name'),request.form.get('phone'),request.form.get('address'),request.form.get('website'),pwd,session['hospital_id']))
+        c.execute('UPDATE hospitals SET name=?,city=?,director_name=?,phone=?,address=?,website=?,password=? WHERE hospital_id=?',
+            (request.form.get('name'),request.form.get('city'),request.form.get('director_name'),request.form.get('phone'),request.form.get('address'),request.form.get('website'),pwd,session['hospital_id']))
         db.commit()
         session['hospital_name'] = request.form.get('name')
         log_action("UPDATE_SETTINGS")
-        flash('تم التحديث', 'success')
+        flash('✅ تم التحديث بنجاح', 'success')
         db.close()
         return redirect(url_for('settings'))
     c.execute("SELECT * FROM hospitals WHERE hospital_id = ?", (session['hospital_id'],))
@@ -377,6 +377,23 @@ def add_disease(patient_id):
         flash('تم الإضافة', 'success')
     except Exception as e:
         flash(f'خطأ: {str(e)}', 'danger')
+    finally:
+        db.close()
+    return redirect(url_for('patient_profile', patient_id=patient_id))
+
+@app.route('/patients/<patient_id>/add_allergy', methods=['POST'])
+@login_required
+def add_allergy(patient_id):
+    db = get_db()
+    c = db.cursor()
+    try:
+        c.execute('INSERT INTO allergies(patient_id,allergen,reaction,severity) VALUES(?,?,?,?)',
+            (patient_id,request.form['allergen'],request.form.get('reaction',''),request.form.get('severity','medium')))
+        db.commit()
+        log_action("ADD_ALLERGY", patient_id=patient_id)
+        flash('✅ تم إضافة الحساسية', 'success')
+    except Exception as e:
+        flash(f'❌ خطأ: {str(e)}', 'danger')
     finally:
         db.close()
     return redirect(url_for('patient_profile', patient_id=patient_id))

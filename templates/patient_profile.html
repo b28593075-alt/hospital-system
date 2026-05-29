@@ -104,11 +104,34 @@
             <div class="item">
                 <div class="item-title">{{ allergy['allergen'] }}</div>
                 <div class="item-text">رد الفعل: {{ allergy['reaction'] or 'غير محدد' }}</div>
+                <div class="item-text">الشدة: {{ allergy['severity'] or 'متوسطة' }}</div>
             </div>
         {% endfor %}
     {% else %}
         <div class="empty-state">✅ لا توجد حساسيات مسجلة</div>
     {% endif %}
+
+    <form method="POST" action="{{ url_for('add_allergy', patient_id=patient['patient_id']) }}" class="form-inline">
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label">المادة المحسسة</label>
+                <input type="text" class="form-control" name="allergen" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">رد الفعل</label>
+                <input type="text" class="form-control" name="reaction" placeholder="طفح جلدي، حكة، إلخ">
+            </div>
+            <div class="form-group">
+                <label class="form-label">شدة الحساسية</label>
+                <select class="form-control" name="severity">
+                    <option value="light">خفيفة</option>
+                    <option value="medium" selected>متوسطة</option>
+                    <option value="severe">شديدة</option>
+                </select>
+            </div>
+        </div>
+        <button type="submit" class="btn-small">➕ إضافة حساسية</button>
+    </form>
 </div>
 
 <div class="section">
